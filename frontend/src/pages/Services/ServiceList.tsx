@@ -146,7 +146,7 @@ export default function ServiceList() {
       )}
 
       <ConfirmDialog
-        open={!!deleteTarget}
+        isOpen={!!deleteTarget}
         title="Delete Service"
         message={`Are you sure you want to delete "${deleteTarget?.displayName}"?`}
         onConfirm={handleDelete}

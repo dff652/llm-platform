@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from 'react';
 import { api, ApiError } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useUiStore } from '../../stores/uiStore';
-import { usePolling } from '../../hooks/usePolling';
+import { useSmartPoll } from '../../hooks/useSmartPoll';
 import { DataTable, type TableColumn } from '../../components/common/DataTable';
 import { Modal } from '../../components/common/Modal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
@@ -75,7 +75,7 @@ export default function UserManagement() {
     }
   }, [page, keyword, roleFilter]);
 
-  usePolling(fetchUsers, 30000);
+  useSmartPoll(fetchUsers, 'active', { getInterval: () => 30000 });
 
   // ── Create user ──
   const handleCreate = async () => {

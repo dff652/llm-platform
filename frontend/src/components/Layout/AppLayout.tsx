@@ -1,7 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { useAuthStore } from '../../stores/authStore';
 import Sidebar from './Sidebar';
-import DownloadIndicator from './DownloadIndicator';
 import styles from './AppLayout.module.css';
 
 export default function AppLayout() {
@@ -14,7 +13,6 @@ export default function AppLayout() {
         <header className={styles.topbar}>
           <div className={styles.topbarLeft} />
           <div className={styles.topbarRight}>
-            <DownloadIndicator />
             <span className={styles.username}>
               {user?.displayName || user?.username}
             </span>

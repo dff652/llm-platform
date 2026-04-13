@@ -71,3 +71,7 @@ deploy-package/
 # LLM Models
 backend/llm_models/
 celerybeat-schedule*
+*.db
+*.db-shm
+*.db-wal
+backend/data/

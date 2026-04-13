@@ -1,0 +1,24 @@
+# 开发环境基础设施（仅数据库）
+# 用法: docker compose -f docker-compose.dev.yml up -d
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: llm-dev-postgres
+    environment:
+      POSTGRES_DB: llm_platform
+      POSTGRES_USER: llmuser
+      POSTGRES_PASSWORD: llmpass123
+    ports:
+      - "5433:5432"
+    volumes:
+      - llm_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U llmuser"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  llm_pg_data:

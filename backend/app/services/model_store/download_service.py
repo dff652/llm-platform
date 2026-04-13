@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.model_download import ModelDownload
 from app.models.model_entity import ModelEntity
-from app.models.inference_service import InferenceService
+from app.models.llm_service import LLMService
 from app.schemas.model_store import DownloadCreate, PublishRequest
 
 logger = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ _GPU_PORT_END = 8099
 
 async def _next_available_port(db: AsyncSession) -> int:
     """Find the next available GPU service port by scanning existing endpoints."""
-    result = await db.execute(select(InferenceService.endpoint))
+    result = await db.execute(select(LLMService.endpoint))
     used_ports: set[int] = set()
     for (endpoint,) in result.all():
         if endpoint:
@@ -149,7 +149,7 @@ class DownloadService:
         download_id: int,
         data: PublishRequest,
         created_by: str,
-    ) -> tuple[ModelEntity, InferenceService | None]:
+    ) -> tuple[ModelEntity, LLMService | None]:
         """Publish a downloaded model to the model registry, optionally creating an inference service."""
         dl = await db.get(ModelDownload, download_id)
         if not dl:
@@ -191,38 +191,32 @@ class DownloadService:
 
             # Check if engine already exists for this model
             existing = (await db.execute(
-                select(InferenceService).where(InferenceService.display_name == dl.model_name)
+                select(LLMService).where(LLMService.display_name == dl.model_name)
             )).scalars().first()
             if existing:
-                raise ValueError(f"引擎 {dl.model_name} 已存在 (id={existing.id})，请勿重复创建")
+                raise ValueError(f"Service {dl.model_name} already exists (id={existing.id})")
 
-            endpoint = f"http://localhost:{port}/v1"
-            gpu_arg = f"--tensor-parallel-size 1"
-            if data.gpu_device:
-                gpu_arg = f"--tensor-parallel-size 1"  # CUDA_VISIBLE_DEVICES set in extra_env
+            endpoint = f"http://localhost:{port}"
 
             from app.core.config import settings
-            vllm_python = settings.VLLM_PYTHON_PATH
+            vllm_python = settings.VLLM_PYTHON_PATH or "python3"
 
             exec_cmd = (
                 f"{vllm_python} -m vllm.entrypoints.openai.api_server "
                 f"--model {dl.download_path} "
                 f"--port {port} "
-                f"--trust-remote-code "
-                f"{gpu_arg}"
+                f"--trust-remote-code"
             )
             if data.quantization and data.quantization != "auto":
                 exec_cmd += f" --quantization {data.quantization}"
 
-            service = InferenceService(
+            service = LLMService(
                 name=svc_name,
                 display_name=dl.model_name,
-                service_type="gpu",
                 endpoint=endpoint,
                 model_name=dl.model_name,
                 model_path=dl.download_path,
                 gpu_device=data.gpu_device,
-                algorithms=["qwen"],  # Default for Qwen family
                 exec_command=exec_cmd,
                 description=f"Auto-created from model store: {dl.model_id}",
                 extra_env={"CUDA_VISIBLE_DEVICES": data.gpu_device or "0"},

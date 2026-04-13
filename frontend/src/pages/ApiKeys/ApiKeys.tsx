@@ -1,7 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { api, ApiError } from '../../services/api';
 import { useUiStore } from '../../stores/uiStore';
-import { usePolling } from '../../hooks/usePolling';
+import { useSmartPoll } from '../../hooks/useSmartPoll';
 import { DataTable, type TableColumn } from '../../components/common/DataTable';
 import { Badge } from '../../components/common/Badge';
 import { Modal } from '../../components/common/Modal';
@@ -42,7 +42,7 @@ export default function ApiKeys() {
     }
   }, []);
 
-  usePolling(fetchKeys, 30000);
+  useSmartPoll(fetchKeys, 'active', { getInterval: () => 30000 });
 
   const handleCreate = async () => {
     if (!createName.trim()) return;

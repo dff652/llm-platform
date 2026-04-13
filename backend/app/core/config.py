@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     GPU_AGENT_URL: str = ""
 
     # Database (PostgreSQL)
-    DATABASE_URL: str = "postgresql+asyncpg://llmuser:llmpass123@localhost:5432/llm_platform"
-    DATABASE_SYNC_URL: str = "postgresql+psycopg2://llmuser:llmpass123@localhost:5432/llm_platform"
+    DATABASE_URL: str = "sqlite+aiosqlite:///./app.db"
+    DATABASE_SYNC_URL: str = "sqlite:///./app.db"
 
     # Redis & Celery
     REDIS_URL: str = "redis://localhost:6379/0"

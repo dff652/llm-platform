@@ -52,7 +52,7 @@ async def resolve_endpoint(model: str, db: AsyncSession) -> tuple[str, int] | No
         svc = result.scalar_one_or_none()
 
     if not svc:
-        logger.warning("no_route_for_model", model=model)
+        logger.warning("no_route_for_model: %s", model)
         return None
 
     endpoint = svc.endpoint.rstrip("/")

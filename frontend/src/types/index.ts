@@ -167,6 +167,20 @@ export interface RemoteModel {
   lastUpdated: string;
 }
 
+export interface RemoteModelFile {
+  name: string;
+  path: string;
+  size: number;
+  [key: string]: unknown;
+}
+
+export interface RemoteModelDetail extends RemoteModel {
+  readme: string;
+  files: RemoteModelFile[];
+  architectures: string[];
+  backendSupport: Record<string, unknown>;
+}
+
 export type DownloadStatus = 'pending' | 'downloading' | 'verifying' | 'completed' | 'failed' | 'cancelled';
 
 export interface ModelDownload {

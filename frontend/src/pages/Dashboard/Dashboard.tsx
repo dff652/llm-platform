@@ -23,7 +23,7 @@ export default function Dashboard() {
   }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
-  useSmartPoll(fetchData, { interval: 30000, enabled: true });
+  useSmartPoll(fetchData, 'active', { getInterval: () => 30000, enabled: true });
 
   if (loading) return <div className={styles.page}><p>Loading...</p></div>;
 

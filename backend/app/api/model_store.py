@@ -292,7 +292,7 @@ async def get_download_dependencies(
 ):
     """Get dependencies of a download (model registration, inference services)."""
     from app.models.model_entity import ModelEntity
-    from app.models.inference_service import InferenceService
+    from app.models.llm_service import LLMService
 
     dl = await DownloadService.get(db, download_id)
     if not dl:
@@ -307,7 +307,7 @@ async def get_download_dependencies(
 
     if dl.download_path:
         services = (await db.execute(
-            select(InferenceService).where(InferenceService.model_path == dl.download_path)
+            select(LLMService).where(LLMService.model_path == dl.download_path)
         )).scalars().all()
         result["services"] = [
             {"id": s.id, "name": s.display_name or s.name, "endpoint": s.endpoint}
@@ -325,7 +325,7 @@ async def delete_download(
 ):
     """Delete model files. Disables (not deletes) associated engines."""
     from app.models.model_entity import ModelEntity
-    from app.models.inference_service import InferenceService
+    from app.models.llm_service import LLMService
 
     dl = await DownloadService.get(db, download_id)
     if not dl:
@@ -334,7 +334,7 @@ async def delete_download(
     # Delete associated inference services
     if dl.download_path:
         services = (await db.execute(
-            select(InferenceService).where(InferenceService.model_path == dl.download_path)
+            select(LLMService).where(LLMService.model_path == dl.download_path)
         )).scalars().all()
         for svc in services:
             await db.delete(svc)

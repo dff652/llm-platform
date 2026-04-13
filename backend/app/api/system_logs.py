@@ -128,101 +128,46 @@ async def clear_log(
 async def get_perf_stats(
     _user: AdminUser,
     db: Annotated[AsyncSession, Depends(get_db)],
-    hours: int = Query(24, ge=1, le=168, description="最近 N 小时"),
+    hours: int = Query(24, ge=1, le=168, description="Recent N hours"),
 ):
-    """性能指标统计：推理任务耗时、吞吐量、错误率。"""
+    """Performance stats from chat_logs: latency, throughput, error rate."""
     from sqlalchemy import select, func as sa_func
-    from app.models.inference_task import InferenceTask
+    from app.models.chat_log import ChatLog
     from datetime import datetime, timedelta, timezone
 
     cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
 
-    # 查询最近完成的任务
     result = await db.execute(
-        select(InferenceTask).where(
-            InferenceTask.completed_at >= cutoff,
-            InferenceTask.parent_task_id.is_(None),
-        ).order_by(InferenceTask.completed_at.desc()).limit(500)
+        select(ChatLog).where(ChatLog.created_at >= cutoff)
+        .order_by(ChatLog.created_at.desc()).limit(500)
     )
-    tasks = result.scalars().all()
+    logs = result.scalars().all()
 
-    if not tasks:
-        return {"hours": hours, "total": 0, "stats": {}, "recent": [], "by_algorithm": {}, "by_hour": []}
+    if not logs:
+        return {"hours": hours, "total": 0, "stats": {}, "by_model": {}, "by_status": {}}
 
-    # 计算耗时
-    durations = []
-    by_algo: dict[str, list[float]] = {}
-    by_status: dict[str, int] = {}
-    by_hour: dict[str, dict] = {}
+    latencies = [l.latency_ms for l in logs if l.latency_ms is not None]
+    by_status = {}
+    by_model: dict[str, int] = {}
+    for l in logs:
+        by_status[l.status] = by_status.get(l.status, 0) + 1
+        by_model[l.model] = by_model.get(l.model, 0) + 1
 
-    for t in tasks:
-        status = t.status or "unknown"
-        by_status[status] = by_status.get(status, 0) + 1
-
-        if t.started_at and t.completed_at:
-            dur = (t.completed_at - t.started_at).total_seconds()
-            durations.append(dur)
-            algo = t.algorithm_name or "unknown"
-            by_algo.setdefault(algo, []).append(dur)
-
-            # 按小时聚合
-            hour_key = t.completed_at.strftime("%Y-%m-%d %H:00")
-            if hour_key not in by_hour:
-                by_hour[hour_key] = {"hour": hour_key, "count": 0, "success": 0, "failed": 0, "avg_duration": 0, "total_duration": 0}
-            by_hour[hour_key]["count"] += 1
-            by_hour[hour_key]["total_duration"] += dur
-            if status in ("completed", "partial_success"):
-                by_hour[hour_key]["success"] += 1
-            elif status in ("failed", "timeout"):
-                by_hour[hour_key]["failed"] += 1
-
-    # 汇总
-    import numpy as np
     stats = {}
-    if durations:
+    if latencies:
+        latencies.sort()
         stats = {
-            "avg": round(np.mean(durations), 2),
-            "p50": round(np.percentile(durations, 50), 2),
-            "p95": round(np.percentile(durations, 95), 2),
-            "min": round(min(durations), 2),
-            "max": round(max(durations), 2),
+            "avg_ms": round(sum(latencies) / len(latencies), 1),
+            "p50_ms": round(latencies[len(latencies) // 2], 1),
+            "p95_ms": round(latencies[int(len(latencies) * 0.95)], 1),
+            "min_ms": round(min(latencies), 1),
+            "max_ms": round(max(latencies), 1),
         }
-
-    algo_stats = {}
-    for algo, durs in by_algo.items():
-        algo_stats[algo] = {
-            "count": len(durs),
-            "avg": round(np.mean(durs), 2),
-            "p95": round(np.percentile(durs, 95), 2),
-        }
-
-    # 按小时排序
-    hour_list = sorted(by_hour.values(), key=lambda x: x["hour"])
-    for h in hour_list:
-        h["avg_duration"] = round(h["total_duration"] / h["count"], 2) if h["count"] else 0
-        del h["total_duration"]
-
-    # 最近 10 条
-    recent = []
-    for t in tasks[:10]:
-        dur = None
-        if t.started_at and t.completed_at:
-            dur = round((t.completed_at - t.started_at).total_seconds(), 2)
-        recent.append({
-            "id": t.id[:12],
-            "algorithm": t.algorithm_name,
-            "status": t.status,
-            "duration": dur,
-            "source": t.source,
-            "completed_at": t.completed_at.isoformat() if t.completed_at else None,
-        })
 
     return {
         "hours": hours,
-        "total": len(tasks),
+        "total": len(logs),
         "by_status": by_status,
+        "by_model": by_model,
         "stats": stats,
-        "by_algorithm": algo_stats,
-        "by_hour": hour_list,
-        "recent": recent,
     }
