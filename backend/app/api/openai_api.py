@@ -334,16 +334,30 @@ async def _stream_proxy(
                         async for chunk in resp.aiter_bytes():
                             error_body += chunk
                         error_msg = error_body.decode("utf-8", errors="replace")[:500]
-                        yield f"data: {{\n\"error\": \"{error_msg}\"\n}}\n\n"
+                        yield f'data: {{"error": "{error_msg}"}}\n\n'
                         yield "data: [DONE]\n\n"
                         return
 
-                    async for line in resp.aiter_lines():
-                        if ttft is None:
-                            ttft = (time.monotonic() - t0) * 1000
-                        yield f"{line}\n"
-                        if line.strip() == "":
-                            yield "\n"
+                    content_type = resp.headers.get("content-type", "")
+                    is_sse = "text/event-stream" in content_type
+
+                    if is_sse:
+                        # True SSE stream from vLLM — forward lines verbatim
+                        async for line in resp.aiter_lines():
+                            if ttft is None:
+                                ttft = (time.monotonic() - t0) * 1000
+                            yield f"{line}\n"
+                            if line.strip() == "":
+                                yield "\n"
+                    else:
+                        # Backend returned non-streaming JSON despite stream=true
+                        # Wrap it as a single SSE event for client compatibility
+                        body_bytes = b""
+                        async for chunk in resp.aiter_bytes():
+                            body_bytes += chunk
+                        ttft = (time.monotonic() - t0) * 1000
+                        yield f"data: {body_bytes.decode('utf-8', errors='replace')}\n\n"
+                        yield "data: [DONE]\n\n"
 
         except httpx.ConnectError:
             yield f'data: {{"error": "Cannot connect to model backend"}}\n\n'
