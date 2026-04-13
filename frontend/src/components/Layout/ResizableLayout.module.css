@@ -1,0 +1,75 @@
+/* 三栏可拖拽布局 */
+.container {
+  display: flex;
+  flex: 1;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  background: var(--color-bg);
+}
+
+/* 侧栏 */
+.sidebar {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  z-index: 2;
+}
+
+.left {
+  border-right: 1px solid var(--color-border);
+}
+
+.right {
+  border-left: 1px solid var(--color-border);
+}
+
+/* 主内容区 */
+.main {
+  flex: 1;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* 拖拽手柄 */
+.resizer {
+  width: var(--space-2);
+  background: transparent;
+  cursor: col-resize;
+  transition: background var(--transition-fast), box-shadow var(--transition-fast);
+  z-index: 10;
+  margin: 0 -2px;
+  position: relative;
+  flex-shrink: 0;
+  border-radius: 9999px;
+}
+
+.resizer:hover,
+.resizer.resizing {
+  background: var(--color-primary);
+}
+
+/* 吸附反馈 */
+.resizer.nearSnap {
+  background: var(--color-success);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-success) 50%, transparent);
+}
+
+/* 拖拽遮罩 */
+.resizeMask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  cursor: col-resize;
+  user-select: none;
+}

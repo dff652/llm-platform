@@ -1,0 +1,73 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+.venv/
+venv/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Vendor (LLaMA-Factory 等第三方源码)
+backend/vendor/
+
+# Data
+backend/app/data/*.db
+backend/app/data/inference/
+backend/app/data/uploads/
+data/
+
+# Logs
+logs/
+*.log
+
+# Docker
+docker-compose.override.yml
+
+# Testing
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Alembic
+backend/alembic/versions/*.pyc
+
+# Claude Code
+.agents/
+.claude/
+
+# TypeScript build info
+frontend/tsconfig.tsbuildinfo
+
+# Temporary analysis docs
+docs/merge-analysis/
+
+# Deploy
+deploy-package/
+
+# LLM Models
+backend/llm_models/
+celerybeat-schedule*

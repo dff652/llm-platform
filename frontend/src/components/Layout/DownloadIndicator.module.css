@@ -1,0 +1,288 @@
+/* ===== Trigger Button ===== */
+.trigger {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.trigger:hover {
+  background: var(--color-bg-tertiary);
+  color: var(--color-text);
+}
+
+.triggerActive {
+  color: var(--color-primary);
+}
+
+.badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.badgeAnimated {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+/* ===== Dropdown Panel ===== */
+.dropdown {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  right: 0;
+  width: 420px;
+  max-height: 400px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  z-index: 200;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdownHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.dropdownTitle {
+  font-weight: 600;
+  color: var(--color-text);
+  font-size: var(--font-size-sm);
+}
+
+.dropdownBody {
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* ===== Download Items ===== */
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.item:last-child {
+  border-bottom: none;
+}
+
+.itemInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.itemName {
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  color: var(--color-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.itemMeta {
+  font-size: 11px;
+  color: var(--color-text-tertiary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.itemSpeed {
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.itemError {
+  color: var(--color-danger);
+}
+
+.itemPath {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  direction: rtl;
+  text-align: left;
+}
+
+.itemProgress {
+  flex: 0 0 100px;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.progressBar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progressFill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+.progressFillDone {
+  background: var(--color-success);
+}
+
+.progressFillFail {
+  background: var(--color-danger);
+}
+
+.itemPct {
+  font-size: 11px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  min-width: 30px;
+  text-align: right;
+}
+
+.itemActions {
+  display: flex;
+  gap: 4px;
+}
+
+.btnSm {
+  padding: 2px 6px;
+  font-size: 11px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-tertiary);
+  transition: all var(--transition-fast);
+}
+
+.btnSm:hover {
+  color: var(--color-text);
+  border-color: var(--color-text-secondary);
+}
+
+.btnRetry {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.btnRetry:hover {
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+}
+
+.btnPublish {
+  color: var(--color-text-inverse);
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.btnPublish:hover {
+  opacity: 0.9;
+}
+
+.statusDone {
+  color: var(--color-success);
+}
+
+.statusFail {
+  color: var(--color-danger);
+}
+
+.empty {
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--color-text-tertiary);
+  font-size: var(--font-size-sm);
+}
+
+/* ===== Path row in header ===== */
+.pathRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: 2px;
+  font-size: 11px;
+}
+
+.pathText {
+  color: var(--color-text-tertiary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+.diskFree {
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.pathEditBtn {
+  color: var(--color-primary);
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pathEditBtn:hover {
+  text-decoration: underline;
+}
+
+.pathEditRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-top: 4px;
+}
+
+.pathInput {
+  flex: 1;
+  padding: 2px 6px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  background: var(--color-surface);
+  color: var(--color-text);
+  min-width: 180px;
+}
+
+.pathInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}

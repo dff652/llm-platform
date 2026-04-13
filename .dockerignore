@@ -1,0 +1,15 @@
+.git
+.env
+.env.production
+*.pyc
+__pycache__
+node_modules
+frontend/node_modules
+backend/app/data
+backend/.env
+data/
+logs/
+.venv
+*.egg-info
+/dist/
+!frontend/dist/

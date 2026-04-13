@@ -1,0 +1,154 @@
+.page {
+  max-width: 1100px;
+}
+
+.pageHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+
+.pageTitle {
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+}
+
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: var(--color-primary);
+  color: var(--color-text-inverse);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  transition: background var(--transition-fast);
+}
+
+.btnPrimary:hover {
+  background: var(--color-primary-hover);
+}
+
+.btnSecondary {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  color: var(--color-text);
+  transition: all var(--transition-fast);
+}
+
+.btnSecondary:hover {
+  border-color: var(--color-text-tertiary);
+}
+
+.btnCopy {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btnCopy:hover {
+  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-surface));
+}
+
+.btnDanger {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  background: none;
+  color: var(--color-danger);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btnDanger:hover {
+  background: color-mix(in srgb, var(--color-danger) 8%, var(--color-surface));
+}
+
+.actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* Key created modal */
+.keyDisplay {
+  background: var(--color-bg-tertiary);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  word-break: break-all;
+  margin-bottom: var(--space-3);
+  user-select: all;
+}
+
+.keyWarning {
+  font-size: var(--font-size-xs);
+  color: var(--color-warning);
+  margin-bottom: var(--space-3);
+}
+
+.formGroup {
+  margin-bottom: var(--space-4);
+}
+
+.formLabel {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+  color: var(--color-text);
+}
+
+.formInput {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  font-size: var(--font-size-base);
+  transition: border-color var(--transition-fast);
+}
+
+.formInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-10);
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}
+
+.error {
+  padding: var(--space-6);
+  text-align: center;
+  color: var(--color-danger);
+  font-size: var(--font-size-sm);
+}
+
+.prefix {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  white-space: nowrap;
+}

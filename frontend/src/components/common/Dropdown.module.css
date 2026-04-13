@@ -1,0 +1,105 @@
+/* Dropdown 下拉菜单 */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.trigger {
+  cursor: pointer;
+}
+
+/* 菜单面板 */
+.menu {
+  position: absolute;
+  z-index: 100;
+  min-width: 180px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: var(--space-1) 0;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+}
+
+/* 位置 */
+.bottom_start {
+  top: 100%;
+  left: 0;
+  margin-top: 4px;
+}
+
+.bottom_end {
+  top: 100%;
+  right: 0;
+  margin-top: 4px;
+}
+
+.top_start {
+  bottom: 100%;
+  left: 0;
+  margin-bottom: 4px;
+}
+
+.top_end {
+  bottom: 100%;
+  right: 0;
+  margin-bottom: 4px;
+}
+
+/* 菜单项 */
+.item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: none;
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--transition-fast);
+}
+
+.item:hover:not(:disabled) {
+  background: var(--color-bg-secondary);
+}
+
+.item.danger {
+  color: var(--color-danger, #ef4444);
+}
+
+.item.danger:hover:not(:disabled) {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.item.disabled,
+.item:disabled {
+  opacity: 0.5;
+  cursor: default;
+  font-weight: 500;
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+}
+
+.itemIcon {
+  display: flex;
+  align-items: center;
+  font-size: 14px;
+}
+
+.itemLabel {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 分隔线 */
+.divider {
+  height: 1px;
+  margin: var(--space-1) 0;
+  background: var(--color-border);
+}

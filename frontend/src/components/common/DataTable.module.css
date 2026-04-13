@@ -1,0 +1,92 @@
+.wrapper {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+
+.table thead {
+  background: var(--color-bg-secondary);
+}
+
+.table th {
+  padding: var(--space-2) var(--space-3);
+  text-align: left;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.table th.sortable {
+  cursor: pointer;
+}
+.table th.sortable:hover {
+  color: var(--color-text);
+}
+
+.sortIcon {
+  font-size: var(--font-size-xs);
+}
+
+.table td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-text);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.table tbody tr:hover {
+  background: var(--color-bg-secondary);
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.activeRow {
+  background: rgba(59, 130, 246, 0.05) !important;
+}
+
+.selectedRow {
+  background: rgba(59, 130, 246, 0.03);
+}
+
+.checkCol {
+  width: 40px;
+  text-align: center;
+}
+
+.checkCol input[type='checkbox'] {
+  cursor: pointer;
+  accent-color: var(--color-primary);
+}
+
+.empty {
+  text-align: center;
+  padding: var(--space-10) !important;
+  color: var(--color-text-tertiary);
+}
+
+.afterRow td {
+  border-top: none !important;
+  background: var(--color-bg-secondary);
+}
+
+.footer {
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+  border-top: 1px solid var(--color-border);
+  background: var(--color-bg-secondary);
+}

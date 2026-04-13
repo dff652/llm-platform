@@ -1,0 +1,130 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.searchBar {
+  position: relative;
+  margin-bottom: var(--space-2);
+}
+
+.searchInput {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  padding-right: var(--space-8);
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+  transition: border-color var(--transition-fast);
+}
+
+.searchInput:focus {
+  border-color: var(--color-primary);
+}
+
+.searchClear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  font-size: 16px;
+  line-height: 1;
+}
+
+.searchClear:hover {
+  color: var(--color-text);
+}
+
+.browser {
+  font-size: var(--font-size-sm);
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) 0;
+}
+
+.node {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 3px 8px;
+  cursor: default;
+  user-select: none;
+}
+
+.node:hover {
+  background: var(--color-bg-secondary);
+}
+
+.toggle {
+  width: 16px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+  font-size: 12px;
+}
+
+.toggle.loading {
+  color: var(--color-primary);
+}
+
+.toggleSpacer {
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.checkbox {
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.folder {
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.measurement {
+  font-family: var(--font-mono);
+  color: var(--color-text-secondary);
+}
+
+.infoTag {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-tertiary);
+  background: var(--color-bg-secondary);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.badge {
+  font-size: var(--font-size-xs);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.empty {
+  padding: var(--space-4);
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+}

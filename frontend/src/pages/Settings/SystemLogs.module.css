@@ -1,0 +1,191 @@
+.page {
+  max-width: 100%;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-4);
+}
+
+.title {
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  margin: 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.autoRefresh {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+
+.refreshBtn {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.refreshBtn:hover {
+  border-color: var(--color-primary);
+}
+
+.refreshBtn:disabled {
+  opacity: 0.5;
+}
+
+.filters {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.select {
+  padding: var(--space-1) var(--space-2);
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+.input {
+  flex: 1;
+  min-width: 200px;
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-bg);
+  color: var(--color-text);
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+}
+
+.presets {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.presetBtn {
+  padding: 2px 8px;
+  font-size: var(--font-size-xs);
+  background: var(--color-bg-secondary);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+
+.presetBtn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.presetActive {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.logContent {
+  flex: 1;
+  min-height: 300px;
+  background: #1a1a2e;
+  color: #d4d4d4;
+  font-family: 'Menlo', 'Consolas', monospace;
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  padding: var(--space-4);
+  border-radius: var(--radius-lg);
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+}
+
+/* 日志颜色 */
+.logContent :global(.log-error) { color: #f44747; font-weight: 500; }
+.logContent :global(.log-warn) { color: #cca700; }
+.logContent :global(.log-debug) { color: #888; }
+
+/* 清空按钮 */
+.clearBtn {
+  padding: var(--space-1) var(--space-3);
+  font-size: var(--font-size-sm);
+  background: var(--color-surface);
+  border: 1px solid var(--color-danger);
+  color: var(--color-danger);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.clearBtn:hover { background: var(--color-danger); color: white; }
+
+/* Tab 按钮 */
+.tabBar { display: flex; gap: 0; }
+.tabBtn {
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--font-size-base);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.tabBtn:hover { color: var(--color-text); }
+.tabBtnActive { color: var(--color-primary); border-bottom-color: var(--color-primary); }
+
+/* 性能 tab */
+.perfContainer { padding-top: var(--space-2); }
+.perfHeader { display: flex; gap: var(--space-3); align-items: center; margin-bottom: var(--space-4); }
+.perfCards { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-3); margin-bottom: var(--space-4); }
+.perfCard {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-3) var(--space-4);
+}
+.perfCardLabel { font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: var(--space-1); }
+.perfCardValue { font-size: var(--font-size-xl); font-weight: 700; }
+.perfSection { margin-bottom: var(--space-4); }
+.perfSectionTitle { font-size: var(--font-size-base); font-weight: 600; margin: 0 0 var(--space-2) 0; }
+.perfTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-sm);
+}
+.perfTable th {
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+}
+.perfTable td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+.empty { padding: var(--space-6); text-align: center; color: var(--color-text-secondary); }
