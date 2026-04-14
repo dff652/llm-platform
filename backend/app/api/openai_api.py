@@ -35,12 +35,18 @@ CurrentUser = Annotated[dict, Depends(get_current_user)]
 # Shared helpers
 # ---------------------------------------------------------------------------
 
+_shared_client: httpx.AsyncClient | None = None
+
+
 def _get_client() -> httpx.AsyncClient:
-    """Shared async HTTP client for proxying to vLLM."""
-    return httpx.AsyncClient(
-        timeout=httpx.Timeout(settings.VLLM_REQUEST_TIMEOUT, connect=10),
-        limits=httpx.Limits(max_connections=50, max_keepalive_connections=20),
-    )
+    """Reuse a single AsyncClient for connection pooling across all requests."""
+    global _shared_client
+    if _shared_client is None or _shared_client.is_closed:
+        _shared_client = httpx.AsyncClient(
+            timeout=httpx.Timeout(settings.VLLM_REQUEST_TIMEOUT, connect=10),
+            limits=httpx.Limits(max_connections=50, max_keepalive_connections=20),
+        )
+    return _shared_client
 
 
 async def _log_request(
@@ -135,8 +141,8 @@ async def chat_completions(
 
     # Non-streaming
     try:
-        async with _get_client() as client:
-            resp = await client.post(url, json=payload)
+        client = _get_client()
+        resp = await client.post(url, json=payload)
 
         if resp.status_code != 200:
             error_msg = resp.text[:500]
@@ -235,8 +241,8 @@ async def completions(
         )
 
     try:
-        async with _get_client() as client:
-            resp = await client.post(url, json=payload)
+        client = _get_client()
+        resp = await client.post(url, json=payload)
 
         if resp.status_code != 200:
             error_msg = resp.text[:500]
@@ -327,37 +333,34 @@ async def _stream_proxy(
     async def event_generator():
         ttft = None
         try:
-            async with _get_client() as client:
-                async with client.stream("POST", url, json=payload) as resp:
-                    if resp.status_code != 200:
-                        error_body = b""
-                        async for chunk in resp.aiter_bytes():
-                            error_body += chunk
-                        error_msg = error_body.decode("utf-8", errors="replace")[:500]
-                        yield f'data: {{"error": "{error_msg}"}}\n\n'
-                        yield "data: [DONE]\n\n"
-                        return
+            client = _get_client()
+            async with client.stream("POST", url, json=payload) as resp:
+                if resp.status_code != 200:
+                    error_body = b""
+                    async for chunk in resp.aiter_bytes():
+                        error_body += chunk
+                    error_msg = error_body.decode("utf-8", errors="replace")[:500]
+                    yield f'data: {{"error": "{error_msg}"}}\n\n'
+                    yield "data: [DONE]\n\n"
+                    return
 
-                    content_type = resp.headers.get("content-type", "")
-                    is_sse = "text/event-stream" in content_type
+                content_type = resp.headers.get("content-type", "")
+                is_sse = "text/event-stream" in content_type
 
-                    if is_sse:
-                        # True SSE stream from vLLM — forward lines verbatim
-                        async for line in resp.aiter_lines():
-                            if ttft is None:
-                                ttft = (time.monotonic() - t0) * 1000
-                            yield f"{line}\n"
-                            if line.strip() == "":
-                                yield "\n"
-                    else:
-                        # Backend returned non-streaming JSON despite stream=true
-                        # Wrap it as a single SSE event for client compatibility
-                        body_bytes = b""
-                        async for chunk in resp.aiter_bytes():
-                            body_bytes += chunk
-                        ttft = (time.monotonic() - t0) * 1000
-                        yield f"data: {body_bytes.decode('utf-8', errors='replace')}\n\n"
-                        yield "data: [DONE]\n\n"
+                if is_sse:
+                    async for line in resp.aiter_lines():
+                        if ttft is None:
+                            ttft = (time.monotonic() - t0) * 1000
+                        yield f"{line}\n"
+                        if line.strip() == "":
+                            yield "\n"
+                else:
+                    body_bytes = b""
+                    async for chunk in resp.aiter_bytes():
+                        body_bytes += chunk
+                    ttft = (time.monotonic() - t0) * 1000
+                    yield f"data: {body_bytes.decode('utf-8', errors='replace')}\n\n"
+                    yield "data: [DONE]\n\n"
 
         except httpx.ConnectError:
             yield f'data: {{"error": "Cannot connect to model backend"}}\n\n'

@@ -15,6 +15,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 from app.core.config import settings
+from app.core.utils import is_port_listening
 
 logger = logging.getLogger(__name__)
 
@@ -29,11 +30,7 @@ def _parse_redis_port(url: str) -> int:
         return 6379
 
 
-def _is_port_listening(port: int) -> bool:
-    import socket
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.settimeout(1)
-        return s.connect_ex(("127.0.0.1", port)) == 0
+_is_port_listening = is_port_listening
 
 
 def _start_redis() -> subprocess.Popen | None:

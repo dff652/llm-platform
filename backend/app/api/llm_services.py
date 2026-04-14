@@ -7,7 +7,6 @@ import signal
 import subprocess
 from pathlib import Path
 from typing import Annotated
-from urllib.parse import urlparse
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -17,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, require_role, get_db
 from app.core.config import settings
+from app.core.utils import is_port_listening, parse_url_port
 from app.models.llm_service import LLMService
 from app.services.llm_router import invalidate_cache
 
@@ -185,14 +185,6 @@ async def check_health(
 # Process management (Port-as-Truth)
 # ---------------------------------------------------------------------------
 
-def _parse_port(endpoint: str) -> int | None:
-    """Extract port from endpoint URL."""
-    try:
-        return urlparse(endpoint).port
-    except Exception:
-        return None
-
-
 def _find_pid_by_port(port: int) -> int | None:
     """Find PID listening on a port using lsof."""
     try:
@@ -207,13 +199,6 @@ def _find_pid_by_port(port: int) -> int | None:
     return None
 
 
-def _is_port_listening(port: int) -> bool:
-    import socket
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-        s.settimeout(1)
-        return s.connect_ex(("127.0.0.1", port)) == 0
-
-
 @router.get("/{service_id}/process")
 async def get_process_status(
     service_id: int,
@@ -225,7 +210,7 @@ async def get_process_status(
     if not svc:
         raise HTTPException(404, detail="Service not found")
 
-    port = _parse_port(svc.endpoint)
+    port = parse_url_port(svc.endpoint)
     if not port:
         return {"running": False, "error": "Cannot parse port from endpoint"}
 
@@ -247,7 +232,7 @@ async def start_process(
     if not svc.exec_command:
         raise HTTPException(400, detail="No exec_command configured for this service")
 
-    port = _parse_port(svc.endpoint)
+    port = parse_url_port(svc.endpoint)
     if port and await asyncio.to_thread(_is_port_listening, port):
         return {"success": True, "message": "Process already running", "already_running": True}
 
@@ -261,7 +246,7 @@ async def start_process(
     if svc.extra_env:
         env.update(svc.extra_env)
 
-    # Start process
+    # Start process — close our fd copy after Popen inherits it
     try:
         proc = subprocess.Popen(
             svc.exec_command,
@@ -273,14 +258,15 @@ async def start_process(
             start_new_session=True,
         )
     except Exception as e:
-        log_fh.close()
         raise HTTPException(500, detail=f"Failed to start process: {e}")
+    finally:
+        log_fh.close()  # subprocess inherits the fd; close our copy
 
     # Wait for port to become available
     if port:
         for _ in range(60):  # up to 60s
             await asyncio.sleep(1)
-            if _is_port_listening(port):
+            if is_port_listening(port):
                 logger.info("service_started: %s (pid=%d, port=%d)", svc.name, proc.pid, port)
                 return {"success": True, "message": f"Process started (pid={proc.pid})", "pid": proc.pid}
 
@@ -300,7 +286,7 @@ async def stop_process(
     if not svc:
         raise HTTPException(404, detail="Service not found")
 
-    port = _parse_port(svc.endpoint)
+    port = parse_url_port(svc.endpoint)
     if not port:
         raise HTTPException(400, detail="Cannot parse port from endpoint")
 
@@ -322,7 +308,7 @@ async def stop_process(
     # Wait up to 10s for graceful shutdown
     for _ in range(10):
         await asyncio.sleep(1)
-        if not _is_port_listening(port):
+        if not is_port_listening(port):
             logger.info("service_stopped: %s (pid=%d)", svc.name, pid)
             return {"success": True, "message": f"Process stopped (pid={pid})"}
 

@@ -13,9 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import require_role
 from app.core.database import get_db
 from app.models.api_key import ApiKey
-def to_iso(dt) -> str | None:
-    """Convert datetime to ISO string."""
-    return dt.isoformat() if dt else None
+from app.core.utils import to_iso
 
 logger = structlog.get_logger(__name__)
 
