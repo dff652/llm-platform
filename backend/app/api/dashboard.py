@@ -277,6 +277,8 @@ async def list_recent_requests(
             "latency_ms": log.latency_ms,
             "time_to_first_token_ms": log.time_to_first_token_ms,
             "error_message": log.error_message,
+            "request_body": log.request_body,
+            "response_body": log.response_body,
             "created_at": log.created_at.isoformat() if log.created_at else None,
         })
 

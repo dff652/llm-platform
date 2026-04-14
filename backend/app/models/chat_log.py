@@ -38,6 +38,9 @@ class ChatLog(Base):
     status: Mapped[str] = mapped_column(String(20), default="success")  # success | error
     error_message: Mapped[str | None] = mapped_column(Text)
     error_code: Mapped[str | None] = mapped_column(String(50))
+    # Request/response body (optional, for debugging)
+    request_body: Mapped[dict | None] = mapped_column(JSON)
+    response_body: Mapped[dict | None] = mapped_column(JSON)
     # Service routing
     service_id: Mapped[int | None] = mapped_column(Integer)
     service_endpoint: Mapped[str | None] = mapped_column(String(500))

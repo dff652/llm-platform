@@ -170,11 +170,14 @@ async def check_health(
             resp = await client.get(f"{endpoint}/v1/models")
         if resp.status_code == 200:
             data = resp.json()
-            models = [m.get("id") for m in data.get("data", [])]
+            model_data = data.get("data", [])
+            models = [m.get("id") for m in model_data]
+            max_model_len = model_data[0].get("max_model_len") if model_data else None
             return {
                 "healthy": True,
                 "endpoint": endpoint,
                 "models": models,
+                "maxModelLen": max_model_len,
             }
         return {"healthy": False, "endpoint": endpoint, "error": f"HTTP {resp.status_code}"}
     except Exception as e:

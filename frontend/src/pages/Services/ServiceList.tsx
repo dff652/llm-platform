@@ -189,6 +189,9 @@ export default function ServiceList() {
                 {/* Info */}
                 {svc.endpoint && <div className={styles.cardMeta}>{svc.endpoint}</div>}
                 {svc.modelName && <div className={styles.cardMeta}>模型: {svc.modelName}</div>}
+                {health?.maxModelLen && (
+                  <div className={styles.cardMeta}>上下文: {health.maxModelLen.toLocaleString()} tokens</div>
+                )}
                 {proc?.running && proc.pid && (
                   <div className={styles.cardMeta}>PID: {proc.pid}</div>
                 )}

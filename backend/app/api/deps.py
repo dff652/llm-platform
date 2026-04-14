@@ -62,6 +62,16 @@ async def _resolve_api_key(token: str, db: AsyncSession) -> dict:
             },
         )
 
+    # Token quota check
+    if matched_key.token_quota == 0:
+        raise HTTPException(status_code=429, detail="Token 配额为 0，禁止调用")
+    if matched_key.token_quota > 0 and (matched_key.token_used or 0) >= matched_key.token_quota:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Token 用量已达配额上限（{matched_key.token_used}/{matched_key.token_quota}）",
+            headers={"X-Token-Used": str(matched_key.token_used), "X-Token-Quota": str(matched_key.token_quota)},
+        )
+
     # Update last_used_at (fire-and-forget, don't block)
     matched_key.last_used_at = datetime.now(timezone.utc)
     await db.commit()

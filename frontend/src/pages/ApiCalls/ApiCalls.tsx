@@ -159,6 +159,18 @@ export default function ApiCalls() {
                           <pre className={styles.errorPre}>{item.errorMessage}</pre>
                         </div>
                       )}
+                      {item.requestBody && (
+                        <div className={styles.detailFull}>
+                          <strong>请求体</strong>
+                          <pre className={styles.jsonPre}>{JSON.stringify(item.requestBody, null, 2)}</pre>
+                        </div>
+                      )}
+                      {item.responseBody && (
+                        <div className={styles.detailFull}>
+                          <strong>响应体</strong>
+                          <pre className={styles.jsonPre}>{JSON.stringify(item.responseBody, null, 2)}</pre>
+                        </div>
+                      )}
                     </div>
                   </td>
                 </tr>

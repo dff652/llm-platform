@@ -54,6 +54,7 @@ export interface ServiceHealth {
   healthy: boolean;
   endpoint: string | null;
   models?: string[];
+  maxModelLen?: number | null;
   error?: string | null;
 }
 
@@ -133,6 +134,8 @@ export interface ChatLogItem {
   latencyMs: number | null;
   timeToFirstTokenMs: number | null;
   errorMessage: string | null;
+  requestBody: Record<string, unknown> | null;
+  responseBody: Record<string, unknown> | null;
   createdAt: string;
 }
 

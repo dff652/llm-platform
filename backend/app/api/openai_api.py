@@ -67,6 +67,8 @@ async def _log_request(
     total_tokens: int | None = None,
     latency_ms: float | None = None,
     ttft_ms: float | None = None,
+    request_body: dict | None = None,
+    response_body: dict | None = None,
 ):
     """Log an API call to chat_logs table (fire-and-forget)."""
     try:
@@ -88,8 +90,17 @@ async def _log_request(
             total_tokens=total_tokens,
             latency_ms=latency_ms,
             time_to_first_token_ms=ttft_ms,
+            request_body=request_body,
+            response_body=response_body,
         )
         db.add(log)
+        # Accumulate token usage on API Key
+        api_key_id = user.get("api_key_id")
+        if api_key_id and total_tokens and total_tokens > 0:
+            from app.models.api_key import ApiKey
+            key = await db.get(ApiKey, api_key_id)
+            if key:
+                key.token_used = (key.token_used or 0) + total_tokens
         await db.commit()
     except Exception as e:
         logger.warning("chat_log_write_failed: %s", e)
@@ -183,8 +194,9 @@ async def chat_completions(
             completion_tokens=usage.get("completion_tokens"),
             total_tokens=usage.get("total_tokens"),
             latency_ms=(time.monotonic() - t0) * 1000,
+            request_body=payload,
+            response_body=data,
         )
-        # Override id with our request_id
         data["id"] = request_id
         return data
 
