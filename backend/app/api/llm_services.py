@@ -214,7 +214,7 @@ async def get_process_status(
     if not port:
         return {"running": False, "error": "Cannot parse port from endpoint"}
 
-    running = await asyncio.to_thread(_is_port_listening, port)
+    running = await asyncio.to_thread(is_port_listening, port)
     pid = await asyncio.to_thread(_find_pid_by_port, port) if running else None
     return {"running": running, "port": port, "pid": pid}
 
@@ -233,7 +233,7 @@ async def start_process(
         raise HTTPException(400, detail="No exec_command configured for this service")
 
     port = parse_url_port(svc.endpoint)
-    if port and await asyncio.to_thread(_is_port_listening, port):
+    if port and await asyncio.to_thread(is_port_listening, port):
         return {"success": True, "message": "Process already running", "already_running": True}
 
     # Prepare log file
