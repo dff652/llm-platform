@@ -32,7 +32,7 @@ export default function ServiceList() {
       const data = await api.get<LLMService[]>('/services');
       setServices(data);
     } catch {
-      showToast({ type: 'error', message: 'Failed to load services' });
+      showToast({ type: 'error', message: '加载服务失败' });
     } finally {
       setLoading(false);
     }
@@ -45,7 +45,7 @@ export default function ServiceList() {
       const health = await api.get<ServiceHealth>(`/services/${id}/health`);
       setHealthMap((prev) => ({ ...prev, [id]: health }));
     } catch {
-      setHealthMap((prev) => ({ ...prev, [id]: { healthy: false, error: 'Check failed' } as ServiceHealth }));
+      setHealthMap((prev) => ({ ...prev, [id]: { healthy: false, error: '检查失败' } as ServiceHealth }));
     }
   }, []);
 
@@ -73,7 +73,7 @@ export default function ServiceList() {
       checkProcess(svc.id);
       checkHealth(svc.id);
     } catch (e) {
-      showToast({ type: 'error', message: e instanceof ApiError ? e.detail : 'Start failed' });
+      showToast({ type: 'error', message: e instanceof ApiError ? e.detail : '启动失败' });
     } finally {
       setActionLoading((prev) => { const n = { ...prev }; delete n[svc.id]; return n; });
     }
@@ -87,7 +87,7 @@ export default function ServiceList() {
       checkProcess(svc.id);
       checkHealth(svc.id);
     } catch (e) {
-      showToast({ type: 'error', message: e instanceof ApiError ? e.detail : 'Stop failed' });
+      showToast({ type: 'error', message: e instanceof ApiError ? e.detail : '停止失败' });
     } finally {
       setActionLoading((prev) => { const n = { ...prev }; delete n[svc.id]; return n; });
     }
@@ -97,16 +97,16 @@ export default function ServiceList() {
     try {
       if (editingService) {
         await api.put(`/services/${editingService.id}`, data);
-        showToast({ type: 'success', message: 'Service updated' });
+        showToast({ type: 'success', message: '服务已更新' });
       } else {
         await api.post('/services', data);
-        showToast({ type: 'success', message: 'Service created' });
+        showToast({ type: 'success', message: '服务已创建' });
       }
       setShowForm(false);
       setEditingService(null);
       fetchServices();
     } catch (e) {
-      showToast({ type: 'error', message: e instanceof ApiError ? e.detail : 'Save failed' });
+      showToast({ type: 'error', message: e instanceof ApiError ? e.detail : '保存失败' });
     }
   };
 
@@ -114,23 +114,23 @@ export default function ServiceList() {
     if (!deleteTarget) return;
     try {
       await api.delete(`/services/${deleteTarget.id}`);
-      showToast({ type: 'success', message: 'Service deleted' });
+      showToast({ type: 'success', message: '服务已删除' });
       setDeleteTarget(null);
       fetchServices();
     } catch (e) {
-      showToast({ type: 'error', message: e instanceof ApiError ? e.detail : 'Delete failed' });
+      showToast({ type: 'error', message: e instanceof ApiError ? e.detail : '删除失败' });
     }
   };
 
-  if (loading) return <div className={styles.page}><p>Loading...</p></div>;
+  if (loading) return <div className={styles.page}><p>加载中...</p></div>;
 
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h2>Model Services</h2>
+        <h2>模型服务</h2>
         {isAdmin && (
           <button className={styles.btnPrimary} onClick={() => { setEditingService(null); setShowForm(true); }}>
-            + Add Service
+            + 添加服务
           </button>
         )}
       </div>
@@ -138,12 +138,12 @@ export default function ServiceList() {
       <table className={styles.table}>
         <thead>
           <tr>
-            <th>Name</th>
-            <th>Endpoint</th>
-            <th>Model</th>
-            <th>Process</th>
-            <th>Health</th>
-            {isAdmin && <th>Actions</th>}
+            <th>名称</th>
+            <th>端点</th>
+            <th>模型</th>
+            <th>进程</th>
+            <th>健康</th>
+            {isAdmin && <th>操作</th>}
           </tr>
         </thead>
         <tbody>
@@ -162,7 +162,7 @@ export default function ServiceList() {
                 <td>
                   {proc ? (
                     <Badge variant={proc.running ? 'success' : 'default'}>
-                      {proc.running ? `Running (PID ${proc.pid})` : 'Stopped'}
+                      {proc.running ? `运行中 (PID ${proc.pid})` : '已停止'}
                     </Badge>
                   ) : (
                     <span className={styles.subText}>...</span>
@@ -171,7 +171,7 @@ export default function ServiceList() {
                 <td>
                   {health ? (
                     <Badge variant={health.healthy ? 'success' : 'danger'}>
-                      {health.healthy ? 'Healthy' : 'Unhealthy'}
+                      {health.healthy ? '正常' : '异常'}
                     </Badge>
                   ) : (
                     <span className={styles.subText}>...</span>
@@ -182,24 +182,24 @@ export default function ServiceList() {
                     {svc.execCommand && (
                       proc?.running ? (
                         <button className={styles.btnSmallDanger} onClick={() => handleStop(svc)} disabled={!!action}>
-                          {action === 'stopping' ? 'Stopping...' : 'Stop'}
+                          {action === 'stopping' ? '停止中...' : '停止'}
                         </button>
                       ) : (
                         <button className={styles.btnSmallSuccess} onClick={() => handleStart(svc)} disabled={!!action}>
-                          {action === 'starting' ? 'Starting...' : 'Start'}
+                          {action === 'starting' ? '启动中...' : '启动'}
                         </button>
                       )
                     )}
-                    <button className={styles.btnSmall} onClick={() => { setEditingService(svc); setShowForm(true); }}>Edit</button>
-                    <button className={styles.btnSmall} onClick={() => { checkHealth(svc.id); checkProcess(svc.id); }}>Refresh</button>
-                    <button className={styles.btnSmallDanger} onClick={() => setDeleteTarget(svc)}>Delete</button>
+                    <button className={styles.btnSmall} onClick={() => { setEditingService(svc); setShowForm(true); }}>编辑</button>
+                    <button className={styles.btnSmall} onClick={() => { checkHealth(svc.id); checkProcess(svc.id); }}>刷新</button>
+                    <button className={styles.btnSmallDanger} onClick={() => setDeleteTarget(svc)}>删除</button>
                   </td>
                 )}
               </tr>
             );
           })}
           {services.length === 0 && (
-            <tr><td colSpan={isAdmin ? 6 : 5} className={styles.empty}>No services registered</td></tr>
+            <tr><td colSpan={isAdmin ? 6 : 5} className={styles.empty}>暂无已注册服务</td></tr>
           )}
         </tbody>
       </table>
@@ -214,8 +214,8 @@ export default function ServiceList() {
 
       <ConfirmDialog
         isOpen={!!deleteTarget}
-        title="Delete Service"
-        message={`Are you sure you want to delete "${deleteTarget?.displayName}"?`}
+        title="删除服务"
+        message={`确定删除服务 "${deleteTarget?.displayName}"？`}
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
       />
@@ -288,84 +288,84 @@ function ServiceFormModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={service ? 'Edit Service' : 'Add Service'}>
+    <Modal open onClose={onClose} title={service ? '编辑服务' : '添加服务'}>
       <div className={styles.form}>
         <label>
-          Name (unique ID)
+          名称（唯一标识）
           <input value={form.name} onChange={(e) => handleChange('name', e.target.value)} disabled={!!service} />
         </label>
         <label>
-          Display Name
+          显示名称
           <input value={form.displayName} onChange={(e) => handleChange('displayName', e.target.value)} />
         </label>
         <label>
-          Model Path
+          模型路径
           <input value={form.modelPath} onChange={(e) => handleChange('modelPath', e.target.value)} placeholder="/path/to/model" />
         </label>
         <label>
-          Model Name (served-model-name for routing)
+          模型名称（用于路由）
           <input value={form.modelName} onChange={(e) => handleChange('modelName', e.target.value)} placeholder="e.g. qwen or Qwen/Qwen2.5-7B" />
         </label>
 
         {/* GPU Parameter Panel */}
         <div className={styles.gpuPanel}>
           <div className={styles.gpuPanelHeader}>
-            <strong>GPU Parameters</strong>
+            <strong>GPU 参数</strong>
             <label className={styles.toggleSmall}>
               <input type="checkbox" checked={useGpuPanel} onChange={(e) => setUseGpuPanel(e.target.checked)} />
-              Auto-generate command
+              自动生成命令
             </label>
           </div>
           {useGpuPanel ? (
             <div className={styles.gpuGrid}>
-              <label>Port<input value={gpuParams.port} onChange={(e) => handleGpuParam('port', e.target.value)} /></label>
-              <label>GPU Device<input value={form.gpuDevice} onChange={(e) => handleChange('gpuDevice', e.target.value)} placeholder="0 or 0,1" /></label>
-              <label>Tensor Parallel
+              <label>端口<input value={gpuParams.port} onChange={(e) => handleGpuParam('port', e.target.value)} /></label>
+              <label>GPU 设备<input value={form.gpuDevice} onChange={(e) => handleChange('gpuDevice', e.target.value)} placeholder="0 or 0,1" /></label>
+              <label>张量并行
                 <select value={gpuParams.tensorParallel} onChange={(e) => handleGpuParam('tensorParallel', e.target.value)}>
                   <option value="1">1</option><option value="2">2</option><option value="4">4</option>
                 </select>
               </label>
-              <label>Max Model Len<input value={gpuParams.maxModelLen} onChange={(e) => handleGpuParam('maxModelLen', e.target.value)} /></label>
-              <label>GPU Memory Util
+              <label>最大上下文<input value={gpuParams.maxModelLen} onChange={(e) => handleGpuParam('maxModelLen', e.target.value)} /></label>
+              <label>显存利用率
                 <select value={gpuParams.gpuMemUtil} onChange={(e) => handleGpuParam('gpuMemUtil', e.target.value)}>
                   <option value="0.80">80%</option><option value="0.85">85%</option>
                   <option value="0.90">90%</option><option value="0.95">95%</option><option value="0.97">97%</option>
                 </select>
               </label>
-              <label>Dtype
+              <label>精度
                 <select value={gpuParams.dtype} onChange={(e) => handleGpuParam('dtype', e.target.value)}>
                   <option value="auto">auto</option><option value="half">half (fp16)</option><option value="bfloat16">bfloat16</option>
                 </select>
               </label>
-              <label>Quantization
+              <label>量化
                 <select value={gpuParams.quantization} onChange={(e) => handleGpuParam('quantization', e.target.value)}>
                   <option value="">None</option><option value="awq">AWQ</option><option value="gptq">GPTQ</option><option value="squeezellm">SqueezeLLM</option>
                 </select>
               </label>
-              <label>Extra Args<input value={gpuParams.extraArgs} onChange={(e) => handleGpuParam('extraArgs', e.target.value)} placeholder="--enforce-eager" /></label>
+              <label>额外参数<input value={gpuParams.extraArgs} onChange={(e) => handleGpuParam('extraArgs', e.target.value)} placeholder="--enforce-eager" /></label>
               <div style={{ gridColumn: '1 / -1' }}>
-                <button className={styles.btnDefault} onClick={generateCommand} type="button">Generate Command</button>
+                <button className={styles.btnDefault} onClick={generateCommand} type="button">生成命令</button>
               </div>
             </div>
           ) : null}
         </div>
 
         <label>
-          Endpoint
+          端点
           <input value={form.endpoint} onChange={(e) => handleChange('endpoint', e.target.value)} placeholder="http://localhost:8001" />
         </label>
         <label>
-          Exec Command
+          启动命令
           <textarea value={form.execCommand} onChange={(e) => handleChange('execCommand', e.target.value)} rows={3}
-            placeholder="Auto-generated from GPU parameters, or enter manually" />
+            placeholder="从 GPU 参数自动生成，或手动输入" />
         </label>
         <label>
-          Description
+          描述
           <textarea value={form.description} onChange={(e) => handleChange('description', e.target.value)} rows={2} />
         </label>
         <div className={styles.formActions}>
-          <button className={styles.btnDefault} onClick={onClose}>Cancel</button>
-          <button className={styles.btnPrimary} onClick={() => onSave(form)}>Save</button>
+          <button className={styles.btnDefault} onClick={onClose}>取消</button>
+          <button className={styles.btnPrimary} onClick={() => onSave(form)}>保存</button>
         </div>
       </div>
     </Modal>

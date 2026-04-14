@@ -100,10 +100,44 @@
   font-family: var(--font-mono);
 }
 
+.gpuCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.gpuCardWarn {
+  border-color: var(--color-danger);
+  background: color-mix(in srgb, var(--color-danger) 5%, var(--color-surface));
+}
+
+.barFillWarn {
+  background: var(--color-danger) !important;
+}
+
 .gpuMeta {
   font-size: var(--font-size-xs);
   color: var(--color-text-secondary);
   margin-top: var(--space-1);
+}
+
+.gpuSvcs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  margin-top: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border);
+}
+
+.gpuSvcChip {
+  font-size: var(--font-size-xs);
+  padding: 1px 8px;
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  color: var(--color-text-secondary);
 }
 
 /* Charts */

@@ -27,7 +27,7 @@ export default function Login() {
     <div className={styles.page}>
       <form className={styles.card} onSubmit={handleSubmit}>
         <h1 className={styles.title}>LLM Platform</h1>
-        <p className={styles.subtitle}>Large Language Model Inference Gateway</p>
+        <p className={styles.subtitle}>大语言模型推理网关</p>
 
         {error && <div className={styles.error}>{error}</div>}
 

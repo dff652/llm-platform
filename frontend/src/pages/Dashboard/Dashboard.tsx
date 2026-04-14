@@ -11,7 +11,7 @@ import { api } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useSmartPoll } from '../../hooks/useSmartPoll';
 import { Badge } from '../../components/common/Badge';
-import type { DashboardOverview, GpuHardware, RequestTrend, ChatLogItem } from '../../types';
+import type { DashboardOverview, GpuHardware, RequestTrend, ChatLogItem, LLMService } from '../../types';
 import styles from './Dashboard.module.css';
 
 echarts.use([
@@ -31,6 +31,7 @@ export default function Dashboard() {
   const [modelDist, setModelDist] = useState<ModelDist[]>([]);
   const [tokenDaily, setTokenDaily] = useState<TokenDaily[]>([]);
   const [recentRequests, setRecentRequests] = useState<ChatLogItem[]>([]);
+  const [svcList, setSvcList] = useState<LLMService[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
@@ -41,6 +42,7 @@ export default function Dashboard() {
         api.get<{ trend: RequestTrend[] }>('/dashboard/request-trend', { days: 7 }),
         api.get<ModelDist[]>('/dashboard/model-distribution'),
         api.get<{ usage: TokenDaily[] }>('/dashboard/token-usage-daily', { days: 14 }),
+        api.get<LLMService[]>('/services'),
       ];
       if (isAdmin) {
         promises.push(
@@ -53,8 +55,9 @@ export default function Dashboard() {
       setTrend((results[2] as { trend: RequestTrend[] }).trend);
       setModelDist(results[3] as ModelDist[]);
       setTokenDaily((results[4] as { usage: TokenDaily[] }).usage);
-      if (isAdmin && results[5]) {
-        setRecentRequests((results[5] as { items: ChatLogItem[] }).items);
+      setSvcList(results[5] as LLMService[]);
+      if (isAdmin && results[6]) {
+        setRecentRequests((results[6] as { items: ChatLogItem[] }).items);
       }
     } finally {
       setLoading(false);
@@ -68,41 +71,92 @@ export default function Dashboard() {
   const pieOption = useMemo(() => buildPieChart(modelDist), [modelDist]);
   const tokenOption = useMemo(() => buildTokenChart(tokenDaily), [tokenDaily]);
 
-  if (loading) return <div className={styles.page}><p>Loading...</p></div>;
+  if (loading) return <div className={styles.page}><p>加载中...</p></div>;
 
   return (
     <div className={styles.page}>
-      <h2>Dashboard</h2>
+      <h2>仪表板</h2>
 
       {/* Stat cards */}
       {overview && (
         <div className={styles.statsGrid}>
-          <StatCard label="Active Services" value={overview.services} />
-          <StatCard label="Today Requests" value={overview.todayRequests} />
-          <StatCard label="Success" value={overview.todaySuccess} color="var(--color-success)" />
-          <StatCard label="Errors" value={overview.todayErrors} color="var(--color-danger)" />
-          <StatCard label="Today Tokens" value={(overview.todayTokens || 0).toLocaleString()} />
-          <StatCard label="Avg Latency" value={`${overview.avgLatencyMs}ms`} />
-          <StatCard label="Active API Keys" value={overview.activeKeys} />
+          <StatCard label="活跃服务" value={overview.services} />
+          <StatCard label="今日请求" value={overview.todayRequests} />
+          <StatCard label="成功" value={overview.todaySuccess} color="var(--color-success)" />
+          <StatCard label="错误" value={overview.todayErrors} color="var(--color-danger)" />
+          <StatCard label="今日 Token" value={(overview.todayTokens || 0).toLocaleString()} />
+          <StatCard label="平均延迟" value={`${overview.avgLatencyMs}ms`} />
+          <StatCard label="活跃密钥" value={overview.activeKeys} />
+        </div>
+      )}
+
+      {/* GPU cards — prominent position */}
+      {gpus.length > 0 && (
+        <div className={styles.section}>
+          <h3>GPU 状态</h3>
+          <div className={styles.gpuGrid}>
+            {gpus.map((gpu) => {
+              const memWarn = (gpu.memoryPct ?? 0) > 90;
+              const gpuSvcs = svcList.filter((s) => {
+                if (!s.gpuDevice) return false;
+                return s.gpuDevice.includes(String(gpu.index));
+              });
+              return (
+                <div key={gpu.index} className={`${styles.gpuCard} ${memWarn ? styles.gpuCardWarn : ''}`}>
+                  <div className={styles.gpuCardTop}>
+                    <div className={styles.gpuName}>GPU {gpu.index}: {gpu.name}</div>
+                    {memWarn && <Badge variant="danger">显存不足</Badge>}
+                  </div>
+                  <div className={styles.gpuBar}>
+                    <div className={styles.gpuBarLabel}>显存</div>
+                    <div className={styles.barTrack}>
+                      <div className={`${styles.barFill} ${memWarn ? styles.barFillWarn : ''}`} style={{ width: `${gpu.memoryPct}%` }} />
+                    </div>
+                    <span className={styles.gpuBarValue}>
+                      {gpu.memoryUsedMb?.toFixed(0)} / {gpu.memoryTotalMb?.toFixed(0)} MB ({gpu.memoryPct}%)
+                    </span>
+                  </div>
+                  <div className={styles.gpuBar}>
+                    <div className={styles.gpuBarLabel}>使用率</div>
+                    <div className={styles.barTrack}>
+                      <div className={styles.barFill} style={{ width: `${gpu.utilizationPct}%` }} />
+                    </div>
+                    <span className={styles.gpuBarValue}>{gpu.utilizationPct}%</span>
+                  </div>
+                  <div className={styles.gpuMeta}>
+                    温度: {gpu.temperatureC}°C
+                    {gpu.powerDrawW != null && ` | 功率: ${gpu.powerDrawW}W / ${gpu.powerLimitW}W`}
+                  </div>
+                  {gpuSvcs.length > 0 && (
+                    <div className={styles.gpuSvcs}>
+                      {gpuSvcs.map((s) => (
+                        <span key={s.id} className={styles.gpuSvcChip}>{s.displayName}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
       {/* Charts row 1: trend + pie */}
       <div className={styles.chartRow}>
         <div className={styles.chartCard}>
-          <h3>Request Trend (7 days)</h3>
+          <h3>请求趋势（7 天）</h3>
           {trend.length > 0 ? (
             <ReactEChartsCore echarts={echarts} option={trendOption} style={{ height: 280 }} />
           ) : (
-            <div className={styles.emptyChart}>No data yet</div>
+            <div className={styles.emptyChart}>暂无数据</div>
           )}
         </div>
         <div className={styles.chartCardSmall}>
-          <h3>Model Distribution</h3>
+          <h3>模型分布</h3>
           {modelDist.length > 0 ? (
             <ReactEChartsCore echarts={echarts} option={pieOption} style={{ height: 280 }} />
           ) : (
-            <div className={styles.emptyChart}>No data yet</div>
+            <div className={styles.emptyChart}>暂无数据</div>
           )}
         </div>
       </div>
@@ -110,11 +164,11 @@ export default function Dashboard() {
       {/* Chart row 2: token usage */}
       <div className={styles.section}>
         <div className={styles.chartCard}>
-          <h3>Token Usage (14 days)</h3>
+          <h3>Token 用量（14 天）</h3>
           {tokenDaily.length > 0 ? (
             <ReactEChartsCore echarts={echarts} option={tokenOption} style={{ height: 260 }} />
           ) : (
-            <div className={styles.emptyChart}>No data yet</div>
+            <div className={styles.emptyChart}>暂无数据</div>
           )}
         </div>
       </div>
@@ -122,15 +176,15 @@ export default function Dashboard() {
       {/* Recent requests table */}
       {isAdmin && recentRequests.length > 0 && (
         <div className={styles.section}>
-          <h3>Recent Requests</h3>
+          <h3>最近请求</h3>
           <table className={styles.reqTable}>
             <thead>
               <tr>
-                <th>Time</th>
-                <th>Model</th>
-                <th>Status</th>
-                <th>Tokens</th>
-                <th>Latency</th>
+                <th>时间</th>
+                <th>模型</th>
+                <th>状态</th>
+                <th>Token</th>
+                <th>延迟</th>
                 <th>API Key</th>
               </tr>
             </thead>
@@ -150,39 +204,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* GPU cards */}
-      {gpus.length > 0 && (
-        <div className={styles.section}>
-          <h3>GPU Status</h3>
-          <div className={styles.gpuGrid}>
-            {gpus.map((gpu) => (
-              <div key={gpu.index} className={styles.gpuCard}>
-                <div className={styles.gpuName}>GPU {gpu.index}: {gpu.name}</div>
-                <div className={styles.gpuBar}>
-                  <div className={styles.gpuBarLabel}>Memory</div>
-                  <div className={styles.barTrack}>
-                    <div className={styles.barFill} style={{ width: `${gpu.memoryPct}%` }} />
-                  </div>
-                  <span className={styles.gpuBarValue}>
-                    {gpu.memoryUsedMb?.toFixed(0)} / {gpu.memoryTotalMb?.toFixed(0)} MB ({gpu.memoryPct}%)
-                  </span>
-                </div>
-                <div className={styles.gpuBar}>
-                  <div className={styles.gpuBarLabel}>Utilization</div>
-                  <div className={styles.barTrack}>
-                    <div className={styles.barFill} style={{ width: `${gpu.utilizationPct}%` }} />
-                  </div>
-                  <span className={styles.gpuBarValue}>{gpu.utilizationPct}%</span>
-                </div>
-                <div className={styles.gpuMeta}>
-                  Temp: {gpu.temperatureC}°C
-                  {gpu.powerDrawW != null && ` | Power: ${gpu.powerDrawW}W / ${gpu.powerLimitW}W`}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+      {/* GPU section moved to top */}
     </div>
   );
 }

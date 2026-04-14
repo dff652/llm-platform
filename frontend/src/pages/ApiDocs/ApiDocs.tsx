@@ -26,37 +26,37 @@ export default function ApiDocs() {
 
   return (
     <div className={styles.page}>
-      <h2>API Documentation</h2>
+      <h2>API 文档</h2>
       <p className={styles.subtitle}>
-        This platform provides an OpenAI-compatible API. Use any OpenAI SDK or HTTP client to interact with your models.
+        本平台提供 OpenAI 兼容 API，可使用任何 OpenAI SDK 或 HTTP 客户端与模型交互。
       </p>
 
       {/* Quick start */}
       <section className={styles.section}>
-        <h3>Quick Start</h3>
+        <h3>快速开始</h3>
         <div className={styles.steps}>
           <div className={styles.step}>
             <span className={styles.stepNum}>1</span>
             <div>
-              <strong>Get an API Key</strong>
-              <p>Go to <a href="/api-keys">API Keys</a> page and create a key.</p>
+              <strong>获取 API Key</strong>
+              <p>前往 <a href="/api-keys">API 密钥</a> 页面创建密钥。</p>
             </div>
           </div>
           <div className={styles.step}>
             <span className={styles.stepNum}>2</span>
             <div>
-              <strong>Choose a Model</strong>
-              <p>Available models: {models.length > 0
+              <strong>选择模型</strong>
+              <p>可用模型：{models.length > 0
                 ? models.map((m) => <code key={m.id} className={styles.code}>{m.id}</code>)
-                : <span className={styles.muted}>No models registered yet</span>
+                : <span className={styles.muted}>暂未注册模型</span>
               }</p>
             </div>
           </div>
           <div className={styles.step}>
             <span className={styles.stepNum}>3</span>
             <div>
-              <strong>Make a Request</strong>
-              <p>Use the examples below.</p>
+              <strong>发送请求</strong>
+              <p>参考以下示例。</p>
             </div>
           </div>
         </div>
@@ -64,15 +64,15 @@ export default function ApiDocs() {
 
       {/* Endpoints */}
       <section className={styles.section}>
-        <h3>Endpoints</h3>
+        <h3>端点列表</h3>
         <table className={styles.table}>
           <thead>
-            <tr><th>Method</th><th>Path</th><th>Description</th></tr>
+            <tr><th>方法</th><th>路径</th><th>描述</th></tr>
           </thead>
           <tbody>
-            <tr><td><span className={styles.method}>POST</span></td><td><code>/v1/chat/completions</code></td><td>Chat completions (recommended)</td></tr>
-            <tr><td><span className={styles.method}>POST</span></td><td><code>/v1/completions</code></td><td>Text completions (legacy)</td></tr>
-            <tr><td><span className={styles.methodGet}>GET</span></td><td><code>/v1/models</code></td><td>List available models</td></tr>
+            <tr><td><span className={styles.method}>POST</span></td><td><code>/v1/chat/completions</code></td><td>聊天补全（推荐）</td></tr>
+            <tr><td><span className={styles.method}>POST</span></td><td><code>/v1/completions</code></td><td>文本补全（旧版）</td></tr>
+            <tr><td><span className={styles.methodGet}>GET</span></td><td><code>/v1/models</code></td><td>列出可用模型</td></tr>
           </tbody>
         </table>
       </section>
@@ -96,7 +96,7 @@ export default function ApiDocs() {
 
       {/* Python example */}
       <section className={styles.section}>
-        <h3>Python (OpenAI SDK)</h3>
+        <h3>Python（OpenAI SDK）</h3>
         <CodeBlock language="python">{`from openai import OpenAI
 
 client = OpenAI(
@@ -118,7 +118,7 @@ print(response.choices[0].message.content)`}</CodeBlock>
 
       {/* Streaming example */}
       <section className={styles.section}>
-        <h3>Streaming (Python)</h3>
+        <h3>流式调用（Python）</h3>
         <CodeBlock language="python">{`stream = client.chat.completions.create(
     model="${modelName}",
     messages=[{"role": "user", "content": "Tell me a story"}],
@@ -132,19 +132,18 @@ for chunk in stream:
 
       {/* Authentication */}
       <section className={styles.section}>
-        <h3>Authentication</h3>
-        <p>All requests require authentication via the <code>Authorization</code> header:</p>
+        <h3>认证方式</h3>
+        <p>所有请求需通过 <code>Authorization</code> 头认证：</p>
         <CodeBlock language="text">{`Authorization: Bearer ak-xxxxxxxxxxxxxxxx`}</CodeBlock>
         <p className={styles.muted}>
-          Both API Keys (prefix <code>ak-</code>) and JWT tokens are supported.
-          API Keys are recommended for programmatic access.
+          支持 API Key（前缀 <code>ak-</code>）和 JWT 令牌。程序化访问推荐使用 API Key。
         </p>
       </section>
 
       {/* Rate limiting */}
       <section className={styles.section}>
-        <h3>Rate Limiting</h3>
-        <p>Each API Key has configurable rate limits (per minute / hour / day). When exceeded, the API returns:</p>
+        <h3>速率限制</h3>
+        <p>每个 API Key 可配置速率限制（每分钟/小时/天）。超过限制时返回：</p>
         <CodeBlock language="json">{`HTTP 429 Too Many Requests
 {
   "detail": "Rate limit exceeded (minute: 60/window)"
@@ -159,7 +158,7 @@ Headers:
 
       {/* Response format */}
       <section className={styles.section}>
-        <h3>Response Format</h3>
+        <h3>响应格式</h3>
         <CodeBlock language="json">{`{
   "id": "chatcmpl-abc123...",
   "object": "chat.completion",

@@ -68,24 +68,24 @@ export default function ApiCalls() {
   return (
     <div className={styles.page}>
       <div className={styles.header}>
-        <h2>API Calls</h2>
-        <span className={styles.total}>{total} total</span>
+        <h2>API 调用</h2>
+        <span className={styles.total}>{total} 条记录</span>
       </div>
 
       {/* Filter bar */}
       <div className={styles.filterBar}>
         <select value={filterModel} onChange={(e) => { setFilterModel(e.target.value); setPage(1); }}>
-          <option value="">All Models</option>
+          <option value="">全部模型</option>
           {modelOptions.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
         <select value={filterStatus} onChange={(e) => { setFilterStatus(e.target.value); setPage(1); }}>
-          <option value="">All Status</option>
-          <option value="success">Success</option>
-          <option value="error">Error</option>
+          <option value="">全部状态</option>
+          <option value="success">成功</option>
+          <option value="error">失败</option>
         </select>
         <input
           type="text"
-          placeholder="API Key name"
+          placeholder="API Key 名称"
           value={filterApiKey}
           onChange={(e) => { setFilterApiKey(e.target.value); setPage(1); }}
         />
@@ -93,15 +93,15 @@ export default function ApiCalls() {
           type="datetime-local"
           value={filterStartTime}
           onChange={(e) => { setFilterStartTime(e.target.value); setPage(1); }}
-          title="Start time"
+          title="开始时间"
         />
         <input
           type="datetime-local"
           value={filterEndTime}
           onChange={(e) => { setFilterEndTime(e.target.value); setPage(1); }}
-          title="End time"
+          title="结束时间"
         />
-        <button className={styles.resetBtn} onClick={handleReset}>Reset</button>
+        <button className={styles.resetBtn} onClick={handleReset}>重置</button>
       </div>
 
       {/* Table */}
@@ -109,13 +109,13 @@ export default function ApiCalls() {
         <thead>
           <tr>
             <th></th>
-            <th>Time</th>
-            <th>Model</th>
-            <th>Type</th>
-            <th>Status</th>
-            <th>Tokens</th>
-            <th>Latency</th>
-            <th>TTFT</th>
+            <th>时间</th>
+            <th>模型</th>
+            <th>类型</th>
+            <th>状态</th>
+            <th>Token</th>
+            <th>延迟</th>
+            <th>首Token</th>
             <th>API Key</th>
           </tr>
         </thead>
@@ -147,15 +147,15 @@ export default function ApiCalls() {
                 <tr key={`${item.id}-detail`} className={styles.detailRow}>
                   <td colSpan={9}>
                     <div className={styles.detailGrid}>
-                      <div><strong>Request ID</strong><code>{item.requestId}</code></div>
-                      <div><strong>Prompt Tokens</strong><span>{item.promptTokens ?? '-'}</span></div>
-                      <div><strong>Completion Tokens</strong><span>{item.completionTokens ?? '-'}</span></div>
-                      <div><strong>Total Tokens</strong><span>{item.totalTokens ?? '-'}</span></div>
-                      <div><strong>Latency</strong><span>{item.latencyMs != null ? `${item.latencyMs.toFixed(1)}ms` : '-'}</span></div>
-                      <div><strong>Time to First Token</strong><span>{item.timeToFirstTokenMs != null ? `${item.timeToFirstTokenMs.toFixed(1)}ms` : '-'}</span></div>
+                      <div><strong>请求 ID</strong><code>{item.requestId}</code></div>
+                      <div><strong>Prompt Token</strong><span>{item.promptTokens ?? '-'}</span></div>
+                      <div><strong>Completion Token</strong><span>{item.completionTokens ?? '-'}</span></div>
+                      <div><strong>总 Token</strong><span>{item.totalTokens ?? '-'}</span></div>
+                      <div><strong>延迟</strong><span>{item.latencyMs != null ? `${item.latencyMs.toFixed(1)}ms` : '-'}</span></div>
+                      <div><strong>首 Token 时间</strong><span>{item.timeToFirstTokenMs != null ? `${item.timeToFirstTokenMs.toFixed(1)}ms` : '-'}</span></div>
                       {item.errorMessage && (
                         <div className={styles.detailFull}>
-                          <strong>Error</strong>
+                          <strong>错误信息</strong>
                           <pre className={styles.errorPre}>{item.errorMessage}</pre>
                         </div>
                       )}
@@ -166,7 +166,7 @@ export default function ApiCalls() {
             </>
           ))}
           {!loading && items.length === 0 && (
-            <tr><td colSpan={9} className={styles.empty}>No API calls found</td></tr>
+            <tr><td colSpan={9} className={styles.empty}>暂无 API 调用记录</td></tr>
           )}
         </tbody>
       </table>

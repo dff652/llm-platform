@@ -182,12 +182,12 @@ export default function Chat() {
             {models.map((m) => (
               <option key={m.id} value={m.id}>{m.id}</option>
             ))}
-            {models.length === 0 && <option value="">No models available</option>}
+            {models.length === 0 && <option value="">暂无可用模型</option>}
           </select>
           <button
             className={`${styles.paramToggle} ${showParams ? styles.paramToggleActive : ''}`}
             onClick={() => setShowParams(!showParams)}
-            title="Parameters"
+            title="参数"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
               <path d="M2 4h12M2 8h12M2 12h12" />
@@ -198,7 +198,7 @@ export default function Chat() {
           </button>
         </div>
         <button className={styles.clearBtn} onClick={handleClear} disabled={streaming || messages.length === 0}>
-          Clear
+          清除
         </button>
       </div>
 
@@ -206,22 +206,22 @@ export default function Chat() {
       {showParams && (
         <div className={styles.paramPanel}>
           <label>
-            <span>Temperature: {temperature}</span>
+            <span>温度: {temperature}</span>
             <input type="range" min="0" max="2" step="0.1" value={temperature}
               onChange={(e) => setTemperature(parseFloat(e.target.value))} />
           </label>
           <label>
-            <span>Max Tokens: {maxTokens}</span>
+            <span>最大 Token: {maxTokens}</span>
             <input type="range" min="64" max="4096" step="64" value={maxTokens}
               onChange={(e) => setMaxTokens(parseInt(e.target.value))} />
           </label>
           <label>
-            <span>System Prompt</span>
+            <span>系统提示</span>
             <textarea
               className={styles.systemInput}
               value={systemPrompt}
               onChange={(e) => setSystemPrompt(e.target.value)}
-              placeholder="You are a helpful assistant..."
+              placeholder="你是一个有帮助的助手..."
               rows={2}
             />
           </label>
@@ -238,7 +238,7 @@ export default function Chat() {
                 <path d="M14 20h8M14 26h20" />
               </svg>
             </div>
-            <p>Select a model and start chatting</p>
+            <p>选择模型开始对话</p>
           </div>
         )}
 
@@ -276,15 +276,15 @@ export default function Chat() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message... (Enter to send, Shift+Enter for newline)"
+          placeholder="输入消息...（Enter 发送，Shift+Enter 换行）"
           rows={1}
           disabled={streaming}
         />
         {streaming ? (
-          <button className={styles.stopBtn} onClick={handleStop}>Stop</button>
+          <button className={styles.stopBtn} onClick={handleStop}>停止</button>
         ) : (
           <button className={styles.sendBtn} onClick={handleSend} disabled={!input.trim() || !selectedModel}>
-            Send
+            发送
           </button>
         )}
       </div>
