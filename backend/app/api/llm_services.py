@@ -275,13 +275,39 @@ async def start_process(
     return {"success": True, "message": f"Process started (pid={proc.pid})", "pid": proc.pid}
 
 
+def _find_systemd_unit_for_port(port: int) -> str | None:
+    """Check if a systemd user service manages the process on this port."""
+    try:
+        pid = _find_pid_by_port(port)
+        if not pid:
+            return None
+        # Check if process is managed by a systemd unit
+        result = subprocess.run(
+            ["systemctl", "--user", "status", str(pid)],
+            capture_output=True, text=True, timeout=5,
+        )
+        # Parse unit name from output: "● unit-name.service - Description"
+        for line in result.stdout.split("\n"):
+            line = line.strip()
+            if line.endswith(".service") or ".service" in line:
+                for word in line.split():
+                    if word.endswith(".service"):
+                        return word
+                    # Handle "● unit.service" format
+                    if ".service" in word:
+                        return word.lstrip("●").strip()
+    except Exception:
+        pass
+    return None
+
+
 @router.post("/{service_id}/stop")
 async def stop_process(
     service_id: int,
     _user: AdminUser,
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """Stop vLLM process by finding PID via port."""
+    """Stop process: try systemctl first (if systemd-managed), otherwise kill by port."""
     svc = await db.get(LLMService, service_id)
     if not svc:
         raise HTTPException(404, detail="Service not found")
@@ -292,25 +318,45 @@ async def stop_process(
 
     pid = await asyncio.to_thread(_find_pid_by_port, port)
     if not pid:
-        return {"success": True, "message": "No process found on port", "already_stopped": True}
+        return {"success": True, "message": "端口无进程", "already_stopped": True}
 
-    # Send SIGTERM, wait, then SIGKILL if needed
+    # Check if managed by systemd — if so, use systemctl stop
+    unit = await asyncio.to_thread(_find_systemd_unit_for_port, port)
+    if unit:
+        try:
+            result = subprocess.run(
+                ["systemctl", "--user", "stop", unit],
+                capture_output=True, text=True, timeout=15,
+            )
+            if result.returncode == 0:
+                # Wait for port to close
+                for _ in range(10):
+                    await asyncio.sleep(1)
+                    if not is_port_listening(port):
+                        logger.info("service_stopped_systemd: %s unit=%s", svc.name, unit)
+                        return {"success": True, "message": f"已停止 systemd 服务 {unit}"}
+                return {"success": True, "message": f"systemctl stop {unit} 已执行，但端口仍在监听"}
+            else:
+                logger.warning("systemctl_stop_failed: %s, falling back to kill", result.stderr.strip())
+        except Exception as e:
+            logger.warning("systemctl_stop_error: %s, falling back to kill", e)
+
+    # Fallback: kill by PID
     try:
         os.killpg(os.getpgid(pid), signal.SIGTERM)
     except ProcessLookupError:
-        return {"success": True, "message": "Process already exited"}
+        return {"success": True, "message": "进程已退出"}
     except PermissionError:
         try:
             os.kill(pid, signal.SIGTERM)
         except Exception as e:
-            raise HTTPException(500, detail=f"Cannot kill process {pid}: {e}")
+            raise HTTPException(500, detail=f"无法终止进程 {pid}: {e}")
 
-    # Wait up to 10s for graceful shutdown
     for _ in range(10):
         await asyncio.sleep(1)
         if not is_port_listening(port):
             logger.info("service_stopped: %s (pid=%d)", svc.name, pid)
-            return {"success": True, "message": f"Process stopped (pid={pid})"}
+            return {"success": True, "message": f"进程已停止 (pid={pid})"}
 
     # Force kill
     try:
