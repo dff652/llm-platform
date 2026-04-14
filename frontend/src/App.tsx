@@ -15,6 +15,7 @@ import ModelCenter from './pages/ModelCenter/ModelCenter';
 import ModelStore from './pages/ModelStore/ModelStore';
 import UserManagement from './pages/UserManagement/UserManagement';
 import ApiKeys from './pages/ApiKeys/ApiKeys';
+import ApiDocs from './pages/ApiDocs/ApiDocs';
 import Settings from './pages/Settings/Settings';
 import SystemLogs from './pages/Settings/SystemLogs';
 
@@ -42,6 +43,7 @@ function App() {
           <Route path="/services" element={<ServiceList />} />
           <Route path="/models" element={<ModelCenter />} />
           <Route path="/model-store" element={<ModelStore />} />
+          <Route path="/api-docs" element={<ApiDocs />} />
           <Route path="/users" element={
             <RoleRoute roles={['admin']}>
               <UserManagement />

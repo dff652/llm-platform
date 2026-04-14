@@ -71,6 +71,13 @@ const icons = {
       <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" />
     </svg>
   ),
+  docs: (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M4 3h9l3 3v11H4z" />
+      <path d="M13 3v3h3" />
+      <path d="M7 9h6M7 12h4" />
+    </svg>
+  ),
   chevron: (
     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M6 4l4 4-4 4" />
@@ -81,6 +88,7 @@ const icons = {
 const NAV_ENTRIES: NavEntry[] = [
   { path: '/dashboard', label: '总览', icon: icons.dashboard },
   { path: '/services', label: '模型服务', icon: icons.inference },
+  { path: '/api-docs', label: 'API 文档', icon: icons.docs },
   {
     key: 'models',
     label: '模型中心',
