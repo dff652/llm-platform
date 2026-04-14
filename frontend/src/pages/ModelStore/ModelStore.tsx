@@ -4,14 +4,15 @@ import { useModelStoreStore } from '../../stores/modelStoreStore';
 import { useAuthStore } from '../../stores/authStore';
 import { useUiStore } from '../../stores/uiStore';
 import { getRemoteModelDetail, checkDiskSpace, updateDownloadDir, browseDirs, getDownloadDependencies, ApiError } from '../../services/api';
-import type { RemoteModel, RemoteModelDetail, ModelDownload, PublishRequest } from '../../types';
+import { api } from '../../services/api';
+import type { RemoteModel, RemoteModelDetail, ModelDownload, PublishRequest, ModelEntity, LLMService } from '../../types';
 import ModelCard from './components/ModelCard';
 import CompareModal from './components/CompareModal';
 import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import { Tabs } from '../../components/common/Tabs';
 import styles from './ModelStore.module.css';
 
-type StoreTab = 'browse' | 'downloads';
+type StoreTab = 'browse' | 'downloads' | 'published';
 
 function formatSize(bytes: number): string {
   if (bytes === 0) return '-';
@@ -60,6 +61,8 @@ export default function ModelStore() {
   } = useModelStoreStore();
 
   const [activeTab, setActiveTab] = useState<StoreTab>('browse');
+  const [publishedModels, setPublishedModels] = useState<ModelEntity[]>([]);
+  const [publishedServices, setPublishedServices] = useState<LLMService[]>([]);
   const [searchInput, setSearchInput] = useState(query);
   const [sortKey, setSortKey] = useState<SortKey>('default');
   const [paramFilter, setParamFilter] = useState<ParamFilter>('');
@@ -105,11 +108,23 @@ export default function ModelStore() {
   }, []);
 
   // Initial load
+  const fetchPublished = useCallback(async () => {
+    try {
+      const [mRes, sRes] = await Promise.all([
+        api.get<{ items: ModelEntity[] }>('/models', { pageSize: 100 }),
+        api.get<LLMService[]>('/services'),
+      ]);
+      setPublishedModels(mRes.items || []);
+      setPublishedServices(sRes);
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => {
     fetchModels();
     fetchDownloads();
+    fetchPublished();
     checkDiskSpace().then(setDiskInfo).catch(() => {});
-  }, [fetchModels, fetchDownloads]);
+  }, [fetchModels, fetchDownloads, fetchPublished]);
 
   // Poll downloads when any are active (pending/downloading)
   const hasActiveDownloads = downloads.some((d) => ['pending', 'downloading', 'verifying'].includes(d.status));
@@ -314,6 +329,7 @@ export default function ModelStore() {
         items={[
           { key: 'browse', label: '模型浏览' },
           { key: 'downloads', label: `下载管理${dlBadgeCount > 0 ? ` (${dlBadgeCount})` : ''}` },
+          { key: 'published', label: `已发布${publishedModels.length > 0 ? ` (${publishedModels.length})` : ''}` },
         ]}
         activeKey={activeTab}
         onChange={(key) => setActiveTab(key as StoreTab)}
@@ -722,6 +738,52 @@ export default function ModelStore() {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Published tab */}
+      {activeTab === 'published' && (
+        <div className={styles.publishedSection}>
+          {publishedModels.length === 0 ? (
+            <div className={styles.emptyHint}>暂无已发布模型，在「模型浏览」中下载并发布模型</div>
+          ) : (
+            <div className={styles.publishedGrid}>
+              {publishedModels.map((model) => {
+                const linked = publishedServices.filter((s) =>
+                  s.modelName === model.name || s.modelPath === model.artifactUri
+                );
+                return (
+                  <div key={model.id} className={styles.publishedCard}>
+                    <div className={styles.publishedCardHeader}>
+                      <div>
+                        <div className={styles.publishedName}>{model.name}</div>
+                        <div className={styles.publishedFamily}>{model.family} · {model.runtimeType} · {model.version || '-'}</div>
+                      </div>
+                    </div>
+                    {model.artifactUri && (
+                      <div className={styles.publishedPath}>{model.artifactUri}</div>
+                    )}
+                    {model.description && (
+                      <div className={styles.publishedDesc}>{model.description}</div>
+                    )}
+                    <div className={styles.publishedFooter}>
+                      <span className={styles.publishedSvcCount}>
+                        {linked.length > 0
+                          ? `${linked.length} 个服务实例: ${linked.map((s) => s.displayName).join(', ')}`
+                          : '无服务实例'}
+                      </span>
+                      {linked.length === 0 && (
+                        <button className={styles.publishedDeployBtn}
+                          onClick={() => navigate(`/services?create=1&modelId=${model.id}`)}>
+                          部署服务
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

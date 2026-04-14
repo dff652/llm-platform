@@ -100,7 +100,6 @@ const NAV_ENTRIES: NavEntry[] = [
     icon: icons.model,
     children: [
       { path: '/services', label: '模型服务' },
-      { path: '/models', label: '模型注册', end: true },
       { path: '/model-store', label: '模型商店' },
     ],
   },

@@ -11,7 +11,6 @@ import RoleRoute from './components/common/RoleRoute';
 import Login from './pages/Login/Login';
 import Dashboard from './pages/Dashboard/Dashboard';
 import ServiceList from './pages/Services/ServiceList';
-import ModelCenter from './pages/ModelCenter/ModelCenter';
 import ModelStore from './pages/ModelStore/ModelStore';
 import UserManagement from './pages/UserManagement/UserManagement';
 import ApiKeys from './pages/ApiKeys/ApiKeys';
@@ -44,7 +43,6 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/chat" element={<Chat />} />
           <Route path="/services" element={<ServiceList />} />
-          <Route path="/models" element={<ModelCenter />} />
           <Route path="/model-store" element={<ModelStore />} />
           <Route path="/api-calls" element={
             <RoleRoute roles={['admin']}>
