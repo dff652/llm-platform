@@ -1,7 +1,7 @@
 {
-  "name": "ts-platform-frontend",
+  "name": "llm-platform-frontend",
   "private": true,
-  "version": "1.4.3",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",

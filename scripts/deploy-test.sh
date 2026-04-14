@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# TS-Platform 容器部署管理工具
+# LLM-Platform 容器部署管理工具
 #
 # 交互式:  ./scripts/deploy-test.sh
 # 命令式:  ./scripts/deploy-test.sh <command>
@@ -12,11 +12,11 @@ PROJECT_DIR=$(pwd)
 ENV_FILE=".env.test"
 COMPOSE_PROJECT="ts-test"
 EXPORT_DIR="$PROJECT_DIR/dist"
-EXPORT_FILE="$EXPORT_DIR/ts-platform-images.tar.gz"
-PACK_FILE="$EXPORT_DIR/ts-platform-deploy.tar.gz"
+EXPORT_FILE="$EXPORT_DIR/llm-platform-images.tar.gz"
+PACK_FILE="$EXPORT_DIR/llm-platform-deploy.tar.gz"
 
-IMG_FRONTEND="ts-platform/frontend:latest"
-IMG_BACKEND="ts-platform/backend:latest"
+IMG_FRONTEND="llm-platform/frontend:latest"
+IMG_BACKEND="llm-platform/backend:latest"
 IMG_POSTGRES="postgres:16-alpine"
 IMG_REDIS="redis:7-alpine"
 
@@ -47,7 +47,7 @@ dc() {
 
 has_source() { [ -f "docker/Dockerfile.backend" ]; }
 has_images() { docker image inspect "$IMG_BACKEND" >/dev/null 2>&1; }
-has_tar()    { [ -f "ts-platform-images.tar.gz" ] || [ -f "$EXPORT_FILE" ]; }
+has_tar()    { [ -f "llm-platform-images.tar.gz" ] || [ -f "$EXPORT_FILE" ]; }
 has_env()    { [ -f "$ENV_FILE" ]; }
 
 containers_running() {
@@ -82,7 +82,7 @@ get_image_status() {
 show_banner() {
     echo ""
     echo -e "${BOLD}${BLUE}╔══════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${BLUE}║     TS-Platform 容器部署管理工具         ║${NC}"
+    echo -e "${BOLD}${BLUE}║     LLM-Platform 容器部署管理工具         ║${NC}"
     echo -e "${BOLD}${BLUE}╚══════════════════════════════════════════╝${NC}"
     echo ""
 
@@ -330,7 +330,7 @@ cmd_build() {
 
     echo ""
     info "镜像构建完成:"
-    docker images --format "  {{.Repository}}:{{.Tag}}\t{{.Size}}" | grep "ts-platform/"
+    docker images --format "  {{.Repository}}:{{.Tag}}\t{{.Size}}" | grep "llm-platform/"
 }
 
 cmd_export() {
@@ -359,10 +359,10 @@ cmd_pack() {
 
     local tmp_dir
     tmp_dir=$(mktemp -d)
-    local pack_dir="$tmp_dir/ts-platform"
+    local pack_dir="$tmp_dir/llm-platform"
     mkdir -p "$pack_dir/scripts"
 
-    cp "$EXPORT_FILE"              "$pack_dir/ts-platform-images.tar.gz"
+    cp "$EXPORT_FILE"              "$pack_dir/llm-platform-images.tar.gz"
     cp "$PROJECT_DIR/docker-compose.yml" "$pack_dir/"
     cp "$PROJECT_DIR/.env.test"          "$pack_dir/"
     cp "$PROJECT_DIR/.env.production"    "$pack_dir/" 2>/dev/null || true
@@ -372,12 +372,12 @@ cmd_pack() {
     cp "$PROJECT_DIR/docs/offline-deploy.md" "$pack_dir/" 2>/dev/null || true
 
     cat > "$pack_dir/README.txt" << 'HEREDOC'
-TS-Platform 离线部署包
+LLM-Platform 离线部署包
 ======================
 
 快速启动（3 步）:
 
-  1. 解压:  tar xzf ts-platform-deploy.tar.gz && cd ts-platform
+  1. 解压:  tar xzf llm-platform-deploy.tar.gz && cd llm-platform
   2. 配置:  cp .env.test .env.test && vim .env.test  (修改密码和端口)
   3. 启动:  ./scripts/deploy-test.sh
 
@@ -391,7 +391,7 @@ GPU 推理引擎需单独部署，详见 offline-deploy.md
 HEREDOC
 
     mkdir -p "$EXPORT_DIR"
-    tar czf "$PACK_FILE" -C "$tmp_dir" ts-platform
+    tar czf "$PACK_FILE" -C "$tmp_dir" llm-platform
     rm -rf "$tmp_dir"
 
     local size
@@ -402,7 +402,7 @@ HEREDOC
     info "目标机器使用方法:"
     echo "  scp $PACK_FILE user@target:/opt/"
     echo "  ssh user@target"
-    echo "  cd /opt && tar xzf ts-platform-deploy.tar.gz && cd ts-platform"
+    echo "  cd /opt && tar xzf llm-platform-deploy.tar.gz && cd llm-platform"
     echo "  sudo ./scripts/deploy-test.sh"
 }
 
@@ -412,8 +412,8 @@ cmd_import() {
     if [ -z "$tar_file" ]; then
         if [ -f "$EXPORT_FILE" ]; then
             tar_file="$EXPORT_FILE"
-        elif [ -f "ts-platform-images.tar.gz" ]; then
-            tar_file="ts-platform-images.tar.gz"
+        elif [ -f "llm-platform-images.tar.gz" ]; then
+            tar_file="llm-platform-images.tar.gz"
         else
             error "找不到镜像文件，请指定路径: $0 import <path/to/images.tar.gz>"
         fi
@@ -423,7 +423,7 @@ cmd_import() {
     docker load < "$tar_file"
 
     info "镜像已加载:"
-    docker images --format "  {{.Repository}}:{{.Tag}}\t{{.Size}}" | grep "ts-platform/" || true
+    docker images --format "  {{.Repository}}:{{.Tag}}\t{{.Size}}" | grep "llm-platform/" || true
 }
 
 cmd_start() {
@@ -432,8 +432,8 @@ cmd_start() {
 
     # 从已有镜像启动（不构建）
     if ! has_images; then
-        if [ -f "ts-platform-images.tar.gz" ]; then
-            cmd_import "" "ts-platform-images.tar.gz"
+        if [ -f "llm-platform-images.tar.gz" ]; then
+            cmd_import "" "llm-platform-images.tar.gz"
         elif [ -f "$EXPORT_FILE" ]; then
             cmd_import "" "$EXPORT_FILE"
         else

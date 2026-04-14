@@ -38,14 +38,14 @@ ADMIN_PASS=$(grep SEED_ADMIN_PASSWORD .env 2>/dev/null | cut -d= -f2 || echo adm
 
 echo ""
 echo "============================================================"
-echo "  TS-Platform 部署验证"
+echo "  LLM-Platform 部署验证"
 echo "============================================================"
 echo ""
 
 # ─── 容器状态 ───
 echo "容器状态:"
 for svc in frontend backend celery postgres redis; do
-    container="ts-platform-$svc"
+    container="llm-platform-$svc"
     status=$(docker inspect -f '{{.State.Status}}' "$container" 2>/dev/null || echo "not found")
     if [ "$status" = "running" ]; then
         pass "$container: running"
@@ -75,7 +75,7 @@ else
 fi
 
 # PostgreSQL
-if docker compose exec -T postgres pg_isready -U tsuser >/dev/null 2>&1; then
+if docker compose exec -T postgres pg_isready -U llmuser >/dev/null 2>&1; then
     pass "PostgreSQL 连接正常"
 else
     fail "PostgreSQL 连接失败"

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# TS-Platform 部署后健康检查
+# LLM-Platform 部署后健康检查
 #
 set -euo pipefail
 
@@ -52,16 +52,16 @@ check_container() {
 }
 
 echo ""
-echo -e "${BOLD}TS-Platform 健康检查${NC}"
+echo -e "${BOLD}LLM-Platform 健康检查${NC}"
 echo ""
 
 # 1. 容器状态
 echo -e "${BOLD}[容器状态]${NC}"
-check_container "ts-platform-backend"
-check_container "ts-platform-frontend"
-check_container "ts-platform-postgres"
-check_container "ts-platform-redis"
-check_container "ts-platform-celery"
+check_container "llm-platform-backend"
+check_container "llm-platform-frontend"
+check_container "llm-platform-postgres"
+check_container "llm-platform-redis"
+check_container "llm-platform-celery"
 echo ""
 
 # 2. API 端点
@@ -78,7 +78,7 @@ echo ""
 
 # 4. 数据库连通
 echo -e "${BOLD}[数据库]${NC}"
-local_pg_check=$(docker exec ts-platform-postgres pg_isready -U tsuser 2>/dev/null && echo "ok" || echo "fail")
+local_pg_check=$(docker exec llm-platform-postgres pg_isready -U llmuser 2>/dev/null && echo "ok" || echo "fail")
 if [ "$local_pg_check" = "ok" ]; then
     echo -e "  ${GREEN}✓${NC} PostgreSQL 连通"
     ((pass++))
@@ -87,7 +87,7 @@ else
     ((fail++))
 fi
 
-local_redis_check=$(docker exec ts-platform-redis redis-cli ping 2>/dev/null || echo "fail")
+local_redis_check=$(docker exec llm-platform-redis redis-cli ping 2>/dev/null || echo "fail")
 if [ "$local_redis_check" = "PONG" ]; then
     echo -e "  ${GREEN}✓${NC} Redis 连通"
     ((pass++))

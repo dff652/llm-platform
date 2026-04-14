@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# TS-Platform 开发环境管理工具
+# LLM-Platform 开发环境管理工具
 #
 # 交互式:  ./scripts/dev.sh
 # 命令式:  ./scripts/dev.sh <command>
@@ -106,7 +106,7 @@ anything_running() {
 show_banner() {
     echo ""
     echo -e "${BOLD}${BLUE}╔══════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${BLUE}║     TS-Platform 开发环境管理工具         ║${NC}"
+    echo -e "${BOLD}${BLUE}║     LLM-Platform 开发环境管理工具         ║${NC}"
     echo -e "${BOLD}${BLUE}╚══════════════════════════════════════════╝${NC}"
     echo ""
 
@@ -600,7 +600,7 @@ cmd_status_detail() {
     if is_postgres_up; then
         echo -e "    端口: $PORT_POSTGRES"
         echo -e "    容器: $(docker ps --filter 'name=ts-dev-postgres' --format '{{.Status}}' 2>/dev/null || echo '外部实例')"
-        echo -e "    数据库: ts_platform"
+        echo -e "    数据库: llm_platform"
     else
         echo -e "    ${DIM}未启动${NC}"
     fi

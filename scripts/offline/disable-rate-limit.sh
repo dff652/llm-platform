@@ -19,10 +19,10 @@ warn()  { echo -e "${YELLOW}[WARN]${NC} $*"; }
 error() { echo -e "${RED}[ERROR]${NC} $*"; exit 1; }
 
 # 自动查找容器名（支持任意部署目录和容器名前缀）
-REDIS_CONTAINER=$(docker ps --format '{{.Names}}' | grep -i redis | grep -i ts-platform | head -1 || echo "")
-PG_CONTAINER=$(docker ps --format '{{.Names}}' | grep -i postgres | grep -i ts-platform | head -1 || echo "")
+REDIS_CONTAINER=$(docker ps --format '{{.Names}}' | grep -i redis | grep -i llm-platform | head -1 || echo "")
+PG_CONTAINER=$(docker ps --format '{{.Names}}' | grep -i postgres | grep -i llm-platform | head -1 || echo "")
 
-# 回退：不带 ts-platform 前缀的也找
+# 回退：不带 llm-platform 前缀的也找
 if [ -z "$REDIS_CONTAINER" ]; then
     REDIS_CONTAINER=$(docker ps --format '{{.Names}}' | grep -i redis | head -1 || echo "")
 fi
@@ -60,7 +60,7 @@ disable() {
     info "系统默认限流已取消"
 
     # 2. API Key 级别限流（数据库）
-    docker exec "$PG_CONTAINER" psql -U tsuser -d ts_platform -c \
+    docker exec "$PG_CONTAINER" psql -U llmuser -d llm_platform -c \
         "UPDATE api_keys SET rate_limit_per_minute=0, rate_limit_per_hour=0, rate_limit_per_day=0;" 2>/dev/null
     info "所有 API Key 限流已清零（使用系统默认值 999999）"
 
@@ -76,7 +76,7 @@ disable() {
 reset_defaults() {
     docker exec "$REDIS_CONTAINER" redis-cli HSET "system:rate_limits" \
         per_minute 10 per_hour 100 per_day 500 >/dev/null 2>&1
-    docker exec "$PG_CONTAINER" psql -U tsuser -d ts_platform -c \
+    docker exec "$PG_CONTAINER" psql -U llmuser -d llm_platform -c \
         "UPDATE api_keys SET rate_limit_per_minute=0, rate_limit_per_hour=0, rate_limit_per_day=0;" 2>/dev/null
     info "API 频率限制已恢复默认值 (10/100/500)"
     show

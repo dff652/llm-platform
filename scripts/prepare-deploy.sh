@@ -14,7 +14,7 @@ cd "$(dirname "$0")/.."
 PROJECT_DIR=$(pwd)
 
 # 源文件
-OFFLINE_PKG="${OFFLINE_PKG:-$PROJECT_DIR/dist/ts-platform-offline.tar.gz}"
+OFFLINE_PKG="${OFFLINE_PKG:-$PROJECT_DIR/dist/llm-platform-offline.tar.gz}"
 MODEL_DIR="${MODEL_DIR:-}"
 TEP_CSV="${TEP_CSV:-/home/douff/ts/test/tep_data_1year.csv}"
 ACCEPTANCE_SCRIPT="$PROJECT_DIR/tests/acceptance/run_acceptance.py"
@@ -105,8 +105,8 @@ mkdir -p "$DEPLOY_DIR/models"
 mkdir -p "$DEPLOY_DIR/tests"
 
 # 离线包 (硬链接，避免复制)
-ln -f "$OFFLINE_PKG" "$DEPLOY_DIR/ts-platform-offline.tar.gz" 2>/dev/null \
-    || cp "$OFFLINE_PKG" "$DEPLOY_DIR/ts-platform-offline.tar.gz"
+ln -f "$OFFLINE_PKG" "$DEPLOY_DIR/llm-platform-offline.tar.gz" 2>/dev/null \
+    || cp "$OFFLINE_PKG" "$DEPLOY_DIR/llm-platform-offline.tar.gz"
 
 # vLLM 环境包
 if [ -f "$VLLM_PKG" ]; then
@@ -133,7 +133,7 @@ info "目录结构:"
 echo ""
 echo "  deploy-package/"
 echo "  ├── DEPLOY-GUIDE.md               # 部署指南"
-echo "  ├── ts-platform-offline.tar.gz   # 离线包 (镜像+配置+脚本)"
+echo "  ├── llm-platform-offline.tar.gz   # 离线包 (镜像+配置+脚本)"
 [ -f "$DEPLOY_DIR/vllm-env.tar.gz" ] && \
 echo "  ├── vllm-env.tar.gz              # vLLM GPU 推理环境"
 echo "  ├── models/                       # → rsync 模型 (见下方)"
@@ -160,7 +160,7 @@ fi
 step "3/3 rsync 传输到 $TARGET:$REMOTE_DIR"
 
 MODEL_NAME=$(basename "$MODEL_DIR")
-OFFLINE_SIZE=$(du -h "$DEPLOY_DIR/ts-platform-offline.tar.gz" | cut -f1)
+OFFLINE_SIZE=$(du -h "$DEPLOY_DIR/llm-platform-offline.tar.gz" | cut -f1)
 VLLM_SIZE=""
 [ -f "$DEPLOY_DIR/vllm-env.tar.gz" ] && VLLM_SIZE=$(du -h "$DEPLOY_DIR/vllm-env.tar.gz" | cut -f1)
 
@@ -169,7 +169,7 @@ echo -e "${BOLD}传输文件确认（回车=传输，n=跳过）:${NC}"
 echo ""
 
 # 离线包
-read -rp "  [1] 离线包 ts-platform-offline.tar.gz ($OFFLINE_SIZE) [Y/n]: " c1
+read -rp "  [1] 离线包 llm-platform-offline.tar.gz ($OFFLINE_SIZE) [Y/n]: " c1
 c1=${c1:-Y}
 
 # vLLM 环境
@@ -191,7 +191,7 @@ echo ""
 # 传输离线包
 if [[ "$c1" =~ ^[Yy]$ ]]; then
     info "传输离线包..."
-    rsync -avhP --mkpath "$DEPLOY_DIR/ts-platform-offline.tar.gz" "$TARGET:$REMOTE_DIR/"
+    rsync -avhP --mkpath "$DEPLOY_DIR/llm-platform-offline.tar.gz" "$TARGET:$REMOTE_DIR/"
 else
     info "跳过离线包"
 fi
@@ -226,7 +226,7 @@ echo ""
 info "校验目标机器文件..."
 REMOTE_CHECK=$(ssh "$TARGET" "
     MISSING=0
-    for f in ts-platform-offline.tar.gz DEPLOY-GUIDE.md tests/run_acceptance.py tests/tep_data_1year.csv tests/sdk-client.py models/$MODEL_NAME/config.json; do
+    for f in llm-platform-offline.tar.gz DEPLOY-GUIDE.md tests/run_acceptance.py tests/tep_data_1year.csv tests/sdk-client.py models/$MODEL_NAME/config.json; do
         if [ ! -f \"$REMOTE_DIR/\$f\" ]; then
             echo \"  缺失: \$f\"
             MISSING=\$((MISSING + 1))
@@ -251,8 +251,8 @@ info "目标机器部署:"
 echo "  ssh $TARGET"
 echo "  cd $REMOTE_DIR"
 echo "  cat DEPLOY-GUIDE.md          # 查看部署指南"
-echo "  tar xzf ts-platform-offline.tar.gz"
-echo "  cd ts-platform-offline"
+echo "  tar xzf llm-platform-offline.tar.gz"
+echo "  cd llm-platform-offline"
 echo "  sudo bash scripts/deploy.sh"
 echo ""
 info "验收测试:"

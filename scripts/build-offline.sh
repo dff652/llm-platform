@@ -2,7 +2,7 @@
 #
 # 构建离线部署包
 #
-# 在构建机器上执行，产出 dist/ts-platform-offline.tar.gz
+# 在构建机器上执行，产出 dist/llm-platform-offline.tar.gz
 # 包含：所有 Docker 镜像 + 配置 + 脚本 + 测试数据 + 文档
 #
 # 用法:
@@ -17,8 +17,8 @@ DIST_DIR="$PROJECT_DIR/dist"
 BUILD_DIR=$(mktemp -d)
 
 # 镜像名称
-IMG_FRONTEND="ts-platform/frontend:latest"
-IMG_BACKEND="ts-platform/backend:latest"
+IMG_FRONTEND="llm-platform/frontend:latest"
+IMG_BACKEND="llm-platform/backend:latest"
 IMG_POSTGRES="postgres:16-alpine"
 IMG_REDIS="redis:7-alpine"
 
@@ -49,7 +49,7 @@ info "日志保存到: $LOG_FILE"
 
 echo ""
 echo "============================================================"
-echo "  TS-Platform 离线部署包构建"
+echo "  LLM-Platform 离线部署包构建"
 echo "============================================================"
 echo ""
 
@@ -130,22 +130,22 @@ done
 # ─── Step 4: 导出所有镜像 ───
 
 step "5/8 导出镜像..."
-mkdir -p "$BUILD_DIR/ts-platform-offline/images"
+mkdir -p "$BUILD_DIR/llm-platform-offline/images"
 
 info "  导出自建镜像..."
-docker save "$IMG_FRONTEND" "$IMG_BACKEND" | gzip > "$BUILD_DIR/ts-platform-offline/images/ts-platform-images.tar.gz"
+docker save "$IMG_FRONTEND" "$IMG_BACKEND" | gzip > "$BUILD_DIR/llm-platform-offline/images/llm-platform-images.tar.gz"
 
 info "  导出 PostgreSQL..."
-docker save "$IMG_POSTGRES" | gzip > "$BUILD_DIR/ts-platform-offline/images/postgres-16-alpine.tar.gz"
+docker save "$IMG_POSTGRES" | gzip > "$BUILD_DIR/llm-platform-offline/images/postgres-16-alpine.tar.gz"
 
 info "  导出 Redis..."
-docker save "$IMG_REDIS" | gzip > "$BUILD_DIR/ts-platform-offline/images/redis-7-alpine.tar.gz"
+docker save "$IMG_REDIS" | gzip > "$BUILD_DIR/llm-platform-offline/images/redis-7-alpine.tar.gz"
 
 # ─── Step 5: 打包 vLLM 环境（可选）───
 
 step "6/8 打包 vLLM 环境..."
-mkdir -p "$BUILD_DIR/ts-platform-offline"
-VLLM_PKG="$BUILD_DIR/ts-platform-offline/vllm-env.tar.gz"
+mkdir -p "$BUILD_DIR/llm-platform-offline"
+VLLM_PKG="$BUILD_DIR/llm-platform-offline/vllm-env.tar.gz"
 
 if [ -f "$DIST_DIR/vllm-env.tar.gz" ]; then
     info "vLLM 环境包已存在 ($(du -h "$DIST_DIR/vllm-env.tar.gz" | cut -f1))，使用缓存"
@@ -160,7 +160,7 @@ fi
 # ─── Step 6: 组装部署包 ───
 
 step "7/8 组装部署包..."
-PACK_DIR="$BUILD_DIR/ts-platform-offline"
+PACK_DIR="$BUILD_DIR/llm-platform-offline"
 
 # 配置
 mkdir -p "$PACK_DIR/config"
@@ -195,14 +195,14 @@ mkdir -p "$PACK_DIR/data" "$PACK_DIR/logs"
 
 # README
 cat > "$PACK_DIR/README.md" << 'HEREDOC'
-# TS-Platform 离线部署包
+# LLM-Platform 离线部署包
 
 ## 快速部署（4 步）
 
 ```bash
 # 1. 解压
-tar xzf ts-platform-offline.tar.gz
-cd ts-platform-offline
+tar xzf llm-platform-offline.tar.gz
+cd llm-platform-offline
 
 # 2. 环境检测
 sudo bash scripts/check-env.sh
@@ -217,7 +217,7 @@ sudo bash scripts/verify.sh
 ## 目录说明
 
 ```
-ts-platform-offline/
+llm-platform-offline/
 ├── images/          # Docker 镜像（离线加载）
 ├── config/          # 配置文件
 ├── scripts/         # 部署/运维脚本
@@ -254,9 +254,9 @@ HEREDOC
 
 step "8/8 打包..."
 mkdir -p "$DIST_DIR"
-PACK_FILE="$DIST_DIR/ts-platform-offline.tar.gz"
+PACK_FILE="$DIST_DIR/llm-platform-offline.tar.gz"
 # 打包前校验必需文件
-PACK_DIR="$BUILD_DIR/ts-platform-offline"
+PACK_DIR="$BUILD_DIR/llm-platform-offline"
 MISSING=0
 for f in \
     config/docker-compose.yml \
@@ -268,7 +268,7 @@ for f in \
     scripts/manage.sh \
     scripts/compose-compat.sh \
     scripts/start-vllm.sh \
-    images/ts-platform-images.tar.gz \
+    images/llm-platform-images.tar.gz \
     images/postgres-16-alpine.tar.gz \
     images/redis-7-alpine.tar.gz \
     README.md; do
@@ -285,7 +285,7 @@ fi
 
 # 校验容器名一致性（docker-compose.yml vs verify.sh）
 COMPOSE_CONTAINERS=$(grep container_name "$PACK_DIR/config/docker-compose.yml" 2>/dev/null | sed 's/.*: *//' | sort || true)
-VERIFY_CONTAINERS=$(grep -oE 'ts-platform-[a-zA-Z0-9_]+' "$PACK_DIR/scripts/verify.sh" 2>/dev/null | sort -u || true)
+VERIFY_CONTAINERS=$(grep -oE 'llm-platform-[a-zA-Z0-9_]+' "$PACK_DIR/scripts/verify.sh" 2>/dev/null | sort -u || true)
 for c in $VERIFY_CONTAINERS; do
     if ! echo "$COMPOSE_CONTAINERS" | grep -q "$c"; then
         warn "verify.sh 引用了容器 '$c'，但 docker-compose.yml 中未定义"
@@ -294,7 +294,7 @@ done
 
 info "部署包校验通过"
 
-tar czf "$PACK_FILE" -C "$BUILD_DIR" ts-platform-offline
+tar czf "$PACK_FILE" -C "$BUILD_DIR" llm-platform-offline
 rm -rf "$BUILD_DIR"
 
 SIZE=$(du -h "$PACK_FILE" | cut -f1)
@@ -307,7 +307,7 @@ info "搬运到目标机器:"
 echo "  scp $PACK_FILE user@target:/opt/"
 echo ""
 info "目标机器部署:"
-echo "  cd /opt && tar xzf ts-platform-offline.tar.gz"
-echo "  cd ts-platform-offline"
+echo "  cd /opt && tar xzf llm-platform-offline.tar.gz"
+echo "  cd llm-platform-offline"
 echo "  sudo bash scripts/deploy.sh"
 echo ""

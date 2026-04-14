@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 一键离线部署 TS-Platform
+# 一键离线部署 LLM-Platform
 #
 # 执行顺序: 环境检测 → 加载镜像 → 配置 → 启动 → 建表 → 验证
 #
@@ -28,7 +28,7 @@ exec > >(tee -a "$LOG_FILE") 2>&1
 
 echo ""
 echo "============================================================"
-echo "  TS-Platform 离线部署"
+echo "  LLM-Platform 离线部署"
 echo "  $(date '+%Y-%m-%d %H:%M:%S')"
 echo "============================================================"
 echo ""
@@ -55,10 +55,10 @@ for tarfile in images/*.tar.gz; do
     docker load < "$tarfile"
 done
 info "镜像加载完成"
-docker images --format "  {{.Repository}}:{{.Tag}}\t{{.Size}}" | grep -E "ts-platform|postgres|redis" || true
+docker images --format "  {{.Repository}}:{{.Tag}}\t{{.Size}}" | grep -E "llm-platform|postgres|redis" || true
 
 # 校验必需镜像
-for img in "ts-platform/frontend:latest" "ts-platform/backend:latest" "postgres:16-alpine" "redis:7-alpine"; do
+for img in "llm-platform/frontend:latest" "llm-platform/backend:latest" "postgres:16-alpine" "redis:7-alpine"; do
     if ! docker image inspect "$img" >/dev/null 2>&1; then
         error "镜像 $img 加载失败"
     fi
@@ -133,7 +133,7 @@ info "等待服务就绪..."
 
 # 等 PostgreSQL 就绪
 for i in $(seq 1 30); do
-    if docker compose exec -T postgres pg_isready -U tsuser >/dev/null 2>&1; then
+    if docker compose exec -T postgres pg_isready -U llmuser >/dev/null 2>&1; then
         info "PostgreSQL 就绪"
         break
     fi
@@ -235,7 +235,7 @@ admin_pass=$(grep SEED_ADMIN_PASSWORD .env 2>/dev/null | cut -d= -f2 || echo adm
 
 echo ""
 echo "============================================================"
-echo -e "  ${GREEN}${BOLD}TS-Platform 部署成功${NC}"
+echo -e "  ${GREEN}${BOLD}LLM-Platform 部署成功${NC}"
 echo "============================================================"
 echo ""
 echo "  前端地址:  http://localhost:${fe_port}"

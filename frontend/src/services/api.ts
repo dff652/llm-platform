@@ -36,7 +36,7 @@ function convertKeys(obj: unknown, converter: (s: string) => string): unknown {
 
 // ===== Token Management =====
 
-const TOKEN_KEY = 'ts_platform_token';
+const TOKEN_KEY = 'llm_platform_token';
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);

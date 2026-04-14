@@ -19,7 +19,7 @@ ERRORS=0
 
 echo ""
 echo "============================================================"
-echo "  TS-Platform 部署环境检测"
+echo "  LLM-Platform 部署环境检测"
 echo "============================================================"
 echo ""
 
@@ -188,7 +188,7 @@ fi
 # ─── 镜像文件 ───
 echo ""
 echo "部署文件:"
-for f in images/ts-platform-images.tar.gz images/postgres-16-alpine.tar.gz images/redis-7-alpine.tar.gz; do
+for f in images/llm-platform-images.tar.gz images/postgres-16-alpine.tar.gz images/redis-7-alpine.tar.gz; do
     if [ -f "$f" ]; then
         size=$(du -h "$f" | cut -f1)
         pass "$f ($size)"

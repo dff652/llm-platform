@@ -142,8 +142,8 @@ cmd_port() {
 cmd_backup() {
     mkdir -p backups
     BACKUP_FILE="backups/db_$(date +%Y%m%d_%H%M%S).sql.gz"
-    PG_USER=$(grep PG_USER .env 2>/dev/null | cut -d= -f2 || echo tsuser)
-    PG_DB=$(grep PG_DB .env 2>/dev/null | cut -d= -f2 || echo ts_platform)
+    PG_USER=$(grep PG_USER .env 2>/dev/null | cut -d= -f2 || echo llmuser)
+    PG_DB=$(grep PG_DB .env 2>/dev/null | cut -d= -f2 || echo llm_platform)
 
     info "备份数据库到 $BACKUP_FILE ..."
     docker compose exec -T postgres pg_dump -U "$PG_USER" "$PG_DB" | gzip > "$BACKUP_FILE"
@@ -163,8 +163,8 @@ cmd_restore() {
         return
     fi
 
-    PG_USER=$(grep PG_USER .env 2>/dev/null | cut -d= -f2 || echo tsuser)
-    PG_DB=$(grep PG_DB .env 2>/dev/null | cut -d= -f2 || echo ts_platform)
+    PG_USER=$(grep PG_USER .env 2>/dev/null | cut -d= -f2 || echo llmuser)
+    PG_DB=$(grep PG_DB .env 2>/dev/null | cut -d= -f2 || echo llm_platform)
 
     warn "将覆盖现有数据库 $PG_DB，确认?"
     read -rp "输入 yes 确认: " confirm
@@ -239,7 +239,7 @@ cmd_reset() {
     # 停止容器
     info "[2/5] 停止容器并清除数据..."
     docker compose down -v 2>/dev/null || true
-    docker rmi ts-platform/frontend:latest ts-platform/backend:latest 2>/dev/null || true
+    docker rmi llm-platform/frontend:latest llm-platform/backend:latest 2>/dev/null || true
     info "容器和镜像已清除"
 
     # 清除 vLLM 环境
@@ -252,7 +252,7 @@ cmd_reset() {
     info "[4/5] 清除部署目录和残留文件..."
 
     # 交付文件清单（只保留这些）
-    # PARENT_DIR/ts-platform-offline.tar.gz
+    # PARENT_DIR/llm-platform-offline.tar.gz
     # PARENT_DIR/DEPLOY-GUIDE.md
     # PARENT_DIR/models/
     # PARENT_DIR/tests/
@@ -267,7 +267,7 @@ cmd_reset() {
     for f in "$PARENT_DIR"/*; do
         fname=$(basename "$f")
         case "$fname" in
-            ts-platform-offline.tar.gz|DEPLOY-GUIDE.md|models|tests)
+            llm-platform-offline.tar.gz|DEPLOY-GUIDE.md|models|tests)
                 # 交付文件，保留
                 ;;
             *)
@@ -280,8 +280,8 @@ cmd_reset() {
     # 验证
     info "[5/5] 验证清理结果..."
     CLEAN=true
-    RUNNING=$(docker ps --format "{{.Names}}" 2>/dev/null | grep "ts-platform" || echo "")
-    [ -z "$RUNNING" ] && echo -e "  ${GREEN}[OK]${NC} 无 ts-platform 容器" || { warn "仍有容器: $RUNNING"; CLEAN=false; }
+    RUNNING=$(docker ps --format "{{.Names}}" 2>/dev/null | grep "llm-platform" || echo "")
+    [ -z "$RUNNING" ] && echo -e "  ${GREEN}[OK]${NC} 无 llm-platform 容器" || { warn "仍有容器: $RUNNING"; CLEAN=false; }
     ! pgrep -f "vllm.entrypoints" >/dev/null 2>&1 && echo -e "  ${GREEN}[OK]${NC} 无 vLLM 进程" || { warn "vLLM 仍在运行"; CLEAN=false; }
     [ ! -d "$VLLM_DIR" ] && echo -e "  ${GREEN}[OK]${NC} vLLM 环境已清除" || { warn "$VLLM_DIR 仍存在"; CLEAN=false; }
     [ ! -d "$DEPLOY_DIR" ] && echo -e "  ${GREEN}[OK]${NC} 部署目录已清除" || { warn "$DEPLOY_DIR 仍存在"; CLEAN=false; }
@@ -289,7 +289,7 @@ cmd_reset() {
     # 确认保留的交付文件
     echo ""
     info "保留的交付文件:"
-    [ -f "$PARENT_DIR/ts-platform-offline.tar.gz" ] && echo -e "  ${GREEN}[OK]${NC} ts-platform-offline.tar.gz" || warn "离线包缺失!"
+    [ -f "$PARENT_DIR/llm-platform-offline.tar.gz" ] && echo -e "  ${GREEN}[OK]${NC} llm-platform-offline.tar.gz" || warn "离线包缺失!"
     [ -f "$PARENT_DIR/DEPLOY-GUIDE.md" ] && echo -e "  ${GREEN}[OK]${NC} DEPLOY-GUIDE.md"
     [ -d "$PARENT_DIR/models" ] && echo -e "  ${GREEN}[OK]${NC} models/ ($(du -sh "$PARENT_DIR/models" 2>/dev/null | cut -f1))"
     [ -d "$PARENT_DIR/tests" ] && echo -e "  ${GREEN}[OK]${NC} tests/"
@@ -298,8 +298,8 @@ cmd_reset() {
     if $CLEAN; then
         info "环境已重置，重新部署:"
         echo "  cd $PARENT_DIR"
-        echo "  tar xzf ts-platform-offline.tar.gz"
-        echo "  cd ts-platform-offline"
+        echo "  tar xzf llm-platform-offline.tar.gz"
+        echo "  cd llm-platform-offline"
         echo "  sudo bash scripts/start-vllm.sh --install"
         echo "  sudo bash scripts/deploy.sh"
         echo "  sudo bash scripts/start-vllm.sh --start"
@@ -338,9 +338,9 @@ cmd_ratelimit() {
     _rl_disable() {
         docker exec "$REDIS_C" redis-cli HSET "system:rate_limits" \
             per_minute -1 per_hour -1 per_day -1 >/dev/null 2>&1
-        docker exec "$PG_C" psql -U tsuser -d ts_platform -c \
+        docker exec "$PG_C" psql -U llmuser -d llm_platform -c \
             "UPDATE system_configs SET value='-1' WHERE key IN ('rate_limit_per_minute','rate_limit_per_hour','rate_limit_per_day');" 2>/dev/null
-        docker exec "$PG_C" psql -U tsuser -d ts_platform -c \
+        docker exec "$PG_C" psql -U llmuser -d llm_platform -c \
             "UPDATE api_keys SET rate_limit_per_minute=0, rate_limit_per_hour=0, rate_limit_per_day=0;" 2>/dev/null
         docker exec "$REDIS_C" redis-cli --scan --pattern "ratelimit:*" 2>/dev/null | while read -r key; do
             docker exec "$REDIS_C" redis-cli DEL "$key" >/dev/null 2>&1
@@ -352,11 +352,11 @@ cmd_ratelimit() {
     _rl_reset() {
         docker exec "$REDIS_C" redis-cli HSET "system:rate_limits" \
             per_minute 10 per_hour 100 per_day 500 >/dev/null 2>&1
-        docker exec "$PG_C" psql -U tsuser -d ts_platform -c \
+        docker exec "$PG_C" psql -U llmuser -d llm_platform -c \
             "UPDATE system_configs SET value='10' WHERE key='rate_limit_per_minute';
              UPDATE system_configs SET value='100' WHERE key='rate_limit_per_hour';
              UPDATE system_configs SET value='500' WHERE key='rate_limit_per_day';" 2>/dev/null
-        docker exec "$PG_C" psql -U tsuser -d ts_platform -c \
+        docker exec "$PG_C" psql -U llmuser -d llm_platform -c \
             "UPDATE api_keys SET rate_limit_per_minute=0, rate_limit_per_hour=0, rate_limit_per_day=0;" 2>/dev/null
         info "API 限流已恢复默认值 (10/100/500)"
         _rl_show
@@ -394,8 +394,8 @@ cmd_configcheck() {
 
     local _BE_PORT=$(grep API_PORT .env 2>/dev/null | cut -d= -f2 || echo "8100")
     local _ADMIN_PASS=$(grep SEED_ADMIN_PASSWORD .env 2>/dev/null | cut -d= -f2 || echo "admin123")
-    local _BACKEND=$(docker ps --format '{{.Names}}' | grep -i backend | grep -i ts-platform | head -1 || echo "")
-    local _REDIS=$(docker ps --format '{{.Names}}' | grep -i redis | grep -i ts-platform | head -1 || echo "")
+    local _BACKEND=$(docker ps --format '{{.Names}}' | grep -i backend | grep -i llm-platform | head -1 || echo "")
+    local _REDIS=$(docker ps --format '{{.Names}}' | grep -i redis | grep -i llm-platform | head -1 || echo "")
 
     _cc_token() {
         curl -s "http://localhost:$_BE_PORT/api/v1/auth/login" \
@@ -834,7 +834,7 @@ asyncio.run(test_load())
 
 cmd_update() {
     PARENT_DIR=$(dirname "$DEPLOY_DIR")
-    NEW_PKG="$PARENT_DIR/ts-platform-offline.tar.gz"
+    NEW_PKG="$PARENT_DIR/llm-platform-offline.tar.gz"
 
     echo ""
     echo -e "${BOLD}  版本更新${NC}"
@@ -919,8 +919,8 @@ cmd_update() {
 
     rm -rf "$DEPLOY_DIR"
     cd "$PARENT_DIR"
-    tar xzf ts-platform-offline.tar.gz
-    cd ts-platform-offline
+    tar xzf llm-platform-offline.tar.gz
+    cd llm-platform-offline
     DEPLOY_DIR=$(pwd)
 
     # 恢复 .env 和 backups
@@ -1085,7 +1085,7 @@ cmd_update() {
 
 show_menu() {
     echo ""
-    echo -e "${BOLD}  TS-Platform 运维管理${NC}"
+    echo -e "${BOLD}  LLM-Platform 运维管理${NC}"
     echo ""
     cmd_status
     echo -e "  ${CYAN}1)${NC} 查看状态"

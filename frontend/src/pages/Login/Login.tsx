@@ -26,8 +26,8 @@ export default function Login() {
   return (
     <div className={styles.page}>
       <form className={styles.card} onSubmit={handleSubmit}>
-        <h1 className={styles.title}>TS Platform</h1>
-        <p className={styles.subtitle}>时序数据智能分析平台</p>
+        <h1 className={styles.title}>LLM Platform</h1>
+        <p className={styles.subtitle}>Large Language Model Inference Gateway</p>
 
         {error && <div className={styles.error}>{error}</div>}
 

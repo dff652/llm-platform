@@ -1,11 +1,11 @@
 services:
   frontend:
-    image: ts-platform/frontend:latest
+    image: llm-platform/frontend:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
       network: host
-    container_name: ts-platform-frontend
+    container_name: llm-platform-frontend
     ports:
       - "${FRONTEND_PORT:-3000}:80"
     depends_on:
@@ -13,12 +13,12 @@ services:
     restart: always
 
   backend:
-    image: ts-platform/backend:latest
+    image: llm-platform/backend:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
       network: host
-    container_name: ts-platform-backend
+    container_name: llm-platform-backend
     ports:
       - "${API_PORT:-8100}:8100"
     volumes:
@@ -29,8 +29,8 @@ services:
     environment:
       - IS_CONTAINERIZED=true
       - GPU_AGENT_URL=http://host.docker.internal:${GPU_AGENT_PORT:-9100}
-      - DATABASE_URL=postgresql+asyncpg://${PG_USER:-tsuser}:${PG_PASSWORD}@postgres:5432/${PG_DB:-ts_platform}
-      - DATABASE_SYNC_URL=postgresql+psycopg2://${PG_USER:-tsuser}:${PG_PASSWORD}@postgres:5432/${PG_DB:-ts_platform}
+      - DATABASE_URL=postgresql+asyncpg://${PG_USER:-llmuser}:${PG_PASSWORD}@postgres:5432/${PG_DB:-llm_platform}
+      - DATABASE_SYNC_URL=postgresql+psycopg2://${PG_USER:-llmuser}:${PG_PASSWORD}@postgres:5432/${PG_DB:-llm_platform}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
@@ -44,11 +44,11 @@ services:
     restart: always
 
   celery-worker:
-    image: ts-platform/backend:latest
+    image: llm-platform/backend:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.backend
-    container_name: ts-platform-celery
+    container_name: llm-platform-celery
     command: celery -A app.core.celery_app worker --loglevel=info --concurrency=${CELERY_CONCURRENCY:-16}
     volumes:
       - ./data:/app/data
@@ -57,8 +57,8 @@ services:
       - .env
     environment:
       - IS_CONTAINERIZED=true
-      - DATABASE_URL=postgresql+asyncpg://${PG_USER:-tsuser}:${PG_PASSWORD}@postgres:5432/${PG_DB:-ts_platform}
-      - DATABASE_SYNC_URL=postgresql+psycopg2://${PG_USER:-tsuser}:${PG_PASSWORD}@postgres:5432/${PG_DB:-ts_platform}
+      - DATABASE_URL=postgresql+asyncpg://${PG_USER:-llmuser}:${PG_PASSWORD}@postgres:5432/${PG_DB:-llm_platform}
+      - DATABASE_SYNC_URL=postgresql+psycopg2://${PG_USER:-llmuser}:${PG_PASSWORD}@postgres:5432/${PG_DB:-llm_platform}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/1
@@ -73,17 +73,17 @@ services:
 
   postgres:
     image: postgres:16-alpine
-    container_name: ts-platform-postgres
+    container_name: llm-platform-postgres
     environment:
-      POSTGRES_DB: ${PG_DB:-ts_platform}
-      POSTGRES_USER: ${PG_USER:-tsuser}
+      POSTGRES_DB: ${PG_DB:-llm_platform}
+      POSTGRES_USER: ${PG_USER:-llmuser}
       POSTGRES_PASSWORD: ${PG_PASSWORD:?Set PG_PASSWORD in .env}
     ports:
       - "${PG_PORT:-5432}:5432"
     volumes:
       - pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-tsuser}"]
+      test: ["CMD-SHELL", "pg_isready -U ${PG_USER:-llmuser}"]
       interval: 5s
       timeout: 3s
       retries: 5
@@ -91,7 +91,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: ts-platform-redis
+    container_name: llm-platform-redis
     ports:
       - "${REDIS_PORT:-6380}:6379"
     volumes:
