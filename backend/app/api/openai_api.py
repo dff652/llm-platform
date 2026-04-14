@@ -22,7 +22,7 @@ from app.schemas.openai import (
     ModelInfo,
     ModelListResponse,
 )
-from app.services.llm_router import list_available_models, resolve_endpoint
+from app.services.llm_router import ensure_running, list_available_models, resolve_endpoint
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +116,11 @@ async def chat_completions(
             detail=f"Model '{body.model}' not found or not available",
         )
     endpoint, service_id = route
+
+    # Ensure backend is running (auto-start if needed)
+    ready, msg = await ensure_running(service_id, db)
+    if not ready:
+        raise HTTPException(503, detail=f"Model backend not available: {msg}")
 
     # Build payload — forward everything, override model with actual vLLM model name
     payload = body.model_dump(exclude_none=True, exclude={"extra_body"})
@@ -222,6 +227,10 @@ async def completions(
     if not route:
         raise HTTPException(404, detail=f"Model '{body.model}' not found or not available")
     endpoint, service_id = route
+
+    ready, msg = await ensure_running(service_id, db)
+    if not ready:
+        raise HTTPException(503, detail=f"Model backend not available: {msg}")
 
     payload = body.model_dump(exclude_none=True)
     url = f"{endpoint}/v1/completions"

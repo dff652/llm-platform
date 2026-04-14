@@ -219,6 +219,9 @@ async def list_recent_requests(
     page_size: int = Query(20, ge=1, le=100),
     model: str | None = Query(None),
     status: str | None = Query(None),
+    api_key_name: str | None = Query(None),
+    start_time: str | None = Query(None, description="ISO8601 e.g. 2026-04-14T00:00:00"),
+    end_time: str | None = Query(None, description="ISO8601 e.g. 2026-04-14T23:59:59"),
 ):
     """Paginated recent API calls. Admin only."""
     query = select(ChatLog)
@@ -230,6 +233,27 @@ async def list_recent_requests(
     if status:
         query = query.where(ChatLog.status == status)
         count_query = count_query.where(ChatLog.status == status)
+    if api_key_name:
+        query = query.where(ChatLog.api_key_name == api_key_name)
+        count_query = count_query.where(ChatLog.api_key_name == api_key_name)
+    if start_time:
+        try:
+            st = datetime.fromisoformat(start_time)
+            if st.tzinfo is None:
+                st = st.replace(tzinfo=timezone.utc)
+            query = query.where(ChatLog.created_at >= st)
+            count_query = count_query.where(ChatLog.created_at >= st)
+        except (ValueError, TypeError):
+            pass
+    if end_time:
+        try:
+            et = datetime.fromisoformat(end_time)
+            if et.tzinfo is None:
+                et = et.replace(tzinfo=timezone.utc)
+            query = query.where(ChatLog.created_at <= et)
+            count_query = count_query.where(ChatLog.created_at <= et)
+        except (ValueError, TypeError):
+            pass
 
     total = (await db.execute(count_query)).scalar() or 0
     offset = (page - 1) * page_size

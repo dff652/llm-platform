@@ -15,6 +15,7 @@ import ModelStore from './pages/ModelStore/ModelStore';
 import UserManagement from './pages/UserManagement/UserManagement';
 import ApiKeys from './pages/ApiKeys/ApiKeys';
 import Chat from './pages/Chat/Chat';
+import ApiCalls from './pages/ApiCalls/ApiCalls';
 import ApiDocs from './pages/ApiDocs/ApiDocs';
 import Settings from './pages/Settings/Settings';
 import SystemLogs from './pages/Settings/SystemLogs';
@@ -43,6 +44,11 @@ function App() {
           <Route path="/chat" element={<Chat />} />
           <Route path="/services" element={<ServiceList />} />
           <Route path="/model-store" element={<ModelStore />} />
+          <Route path="/api-calls" element={
+            <RoleRoute roles={['admin']}>
+              <ApiCalls />
+            </RoleRoute>
+          } />
           <Route path="/api-docs" element={<ApiDocs />} />
           <Route path="/users" element={
             <RoleRoute roles={['admin']}>

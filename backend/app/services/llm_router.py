@@ -1,11 +1,17 @@
 """LLM request router — resolves model name to vLLM backend endpoint."""
 
+import asyncio
 import logging
+import os
+import subprocess
 import time
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
+from app.core.utils import is_port_listening, parse_url_port
 from app.models.llm_service import LLMService
 
 logger = logging.getLogger(__name__)
@@ -58,6 +64,62 @@ async def resolve_endpoint(model: str, db: AsyncSession) -> tuple[str, int] | No
     endpoint = svc.endpoint.rstrip("/")
     _route_cache[model] = (endpoint, svc.id, now)
     return endpoint, svc.id
+
+
+async def ensure_running(service_id: int, db: AsyncSession) -> tuple[bool, str]:
+    """Ensure the vLLM backend is running. Auto-start if it has exec_command.
+
+    Returns (ready, message).
+    """
+    svc = await db.get(LLMService, service_id)
+    if not svc:
+        return False, "Service not found"
+
+    port = parse_url_port(svc.endpoint)
+    if not port:
+        return False, "Cannot parse port from endpoint"
+
+    # Already running
+    if is_port_listening(port):
+        return True, "already running"
+
+    # No exec_command — can't auto-start
+    if not svc.exec_command:
+        return False, f"Service not running on port {port} and no exec_command configured"
+
+    # Auto-start
+    logger.info("ensure_running: auto-starting %s (port %d)", svc.name, port)
+    log_dir = Path(settings.LOG_ENGINES_DIR)
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / f"{svc.name}.log"
+
+    env = os.environ.copy()
+    if svc.extra_env:
+        env.update(svc.extra_env)
+
+    try:
+        log_fh = open(log_file, "a")
+        proc = subprocess.Popen(
+            svc.exec_command,
+            shell=True,
+            stdout=log_fh,
+            stderr=subprocess.STDOUT,
+            cwd=svc.work_dir or None,
+            env=env,
+            start_new_session=True,
+        )
+        log_fh.close()
+    except Exception as e:
+        return False, f"Failed to start: {e}"
+
+    # Wait for port (up to 120s for large models)
+    for i in range(120):
+        await asyncio.sleep(1)
+        if is_port_listening(port):
+            logger.info("ensure_running: %s ready after %ds (pid=%d)", svc.name, i + 1, proc.pid)
+            return True, f"auto-started (pid={proc.pid}, {i + 1}s)"
+
+    return False, f"Process started (pid={proc.pid}) but port {port} not ready after 120s"
 
 
 def invalidate_cache(model: str | None = None):

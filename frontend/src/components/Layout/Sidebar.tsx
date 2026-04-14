@@ -110,6 +110,7 @@ const NAV_ENTRIES: NavEntry[] = [
     icon: icons.settings,
     roles: ['admin'],
     children: [
+      { path: '/api-calls', label: 'API 调用' },
       { path: '/users', label: '用户管理' },
       { path: '/api-keys', label: 'API 密钥' },
       { path: '/settings', label: '系统设置' },

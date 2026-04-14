@@ -243,8 +243,48 @@ function ServiceFormModal({
     execCommand: service?.execCommand || '',
   });
 
+  // GPU parameter panel state
+  const [useGpuPanel, setUseGpuPanel] = useState(!service?.execCommand);
+  const [gpuParams, setGpuParams] = useState({
+    port: service?.endpoint ? parsePort(service.endpoint) : '8001',
+    tensorParallel: '1',
+    maxModelLen: '4096',
+    gpuMemUtil: '0.90',
+    dtype: 'auto',
+    quantization: '',
+    extraArgs: '',
+  });
+
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleGpuParam = (field: string, value: string) => {
+    setGpuParams((prev) => ({ ...prev, [field]: value }));
+  };
+
+  // Auto-generate exec_command + endpoint from GPU params
+  const generateCommand = () => {
+    if (!form.modelPath) return;
+    const parts = [
+      'python -m vllm.entrypoints.openai.api_server',
+      `--model ${form.modelPath}`,
+      `--port ${gpuParams.port}`,
+      `--tensor-parallel-size ${gpuParams.tensorParallel}`,
+      `--max-model-len ${gpuParams.maxModelLen}`,
+      `--gpu-memory-utilization ${gpuParams.gpuMemUtil}`,
+      `--dtype ${gpuParams.dtype}`,
+      '--trust-remote-code',
+    ];
+    if (form.modelName) parts.push(`--served-model-name ${form.modelName}`);
+    if (gpuParams.quantization) parts.push(`--quantization ${gpuParams.quantization}`);
+    if (gpuParams.extraArgs.trim()) parts.push(gpuParams.extraArgs.trim());
+    const cmd = parts.join(' \\\n  ');
+    setForm((prev) => ({
+      ...prev,
+      execCommand: cmd,
+      endpoint: `http://localhost:${gpuParams.port}`,
+    }));
   };
 
   return (
@@ -259,25 +299,65 @@ function ServiceFormModal({
           <input value={form.displayName} onChange={(e) => handleChange('displayName', e.target.value)} />
         </label>
         <label>
-          Endpoint (vLLM URL)
+          Model Path
+          <input value={form.modelPath} onChange={(e) => handleChange('modelPath', e.target.value)} placeholder="/path/to/model" />
+        </label>
+        <label>
+          Model Name (served-model-name for routing)
+          <input value={form.modelName} onChange={(e) => handleChange('modelName', e.target.value)} placeholder="e.g. qwen or Qwen/Qwen2.5-7B" />
+        </label>
+
+        {/* GPU Parameter Panel */}
+        <div className={styles.gpuPanel}>
+          <div className={styles.gpuPanelHeader}>
+            <strong>GPU Parameters</strong>
+            <label className={styles.toggleSmall}>
+              <input type="checkbox" checked={useGpuPanel} onChange={(e) => setUseGpuPanel(e.target.checked)} />
+              Auto-generate command
+            </label>
+          </div>
+          {useGpuPanel ? (
+            <div className={styles.gpuGrid}>
+              <label>Port<input value={gpuParams.port} onChange={(e) => handleGpuParam('port', e.target.value)} /></label>
+              <label>GPU Device<input value={form.gpuDevice} onChange={(e) => handleChange('gpuDevice', e.target.value)} placeholder="0 or 0,1" /></label>
+              <label>Tensor Parallel
+                <select value={gpuParams.tensorParallel} onChange={(e) => handleGpuParam('tensorParallel', e.target.value)}>
+                  <option value="1">1</option><option value="2">2</option><option value="4">4</option>
+                </select>
+              </label>
+              <label>Max Model Len<input value={gpuParams.maxModelLen} onChange={(e) => handleGpuParam('maxModelLen', e.target.value)} /></label>
+              <label>GPU Memory Util
+                <select value={gpuParams.gpuMemUtil} onChange={(e) => handleGpuParam('gpuMemUtil', e.target.value)}>
+                  <option value="0.80">80%</option><option value="0.85">85%</option>
+                  <option value="0.90">90%</option><option value="0.95">95%</option><option value="0.97">97%</option>
+                </select>
+              </label>
+              <label>Dtype
+                <select value={gpuParams.dtype} onChange={(e) => handleGpuParam('dtype', e.target.value)}>
+                  <option value="auto">auto</option><option value="half">half (fp16)</option><option value="bfloat16">bfloat16</option>
+                </select>
+              </label>
+              <label>Quantization
+                <select value={gpuParams.quantization} onChange={(e) => handleGpuParam('quantization', e.target.value)}>
+                  <option value="">None</option><option value="awq">AWQ</option><option value="gptq">GPTQ</option><option value="squeezellm">SqueezeLLM</option>
+                </select>
+              </label>
+              <label>Extra Args<input value={gpuParams.extraArgs} onChange={(e) => handleGpuParam('extraArgs', e.target.value)} placeholder="--enforce-eager" /></label>
+              <div style={{ gridColumn: '1 / -1' }}>
+                <button className={styles.btnDefault} onClick={generateCommand} type="button">Generate Command</button>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <label>
+          Endpoint
           <input value={form.endpoint} onChange={(e) => handleChange('endpoint', e.target.value)} placeholder="http://localhost:8001" />
         </label>
         <label>
-          Model Name (as reported by vLLM)
-          <input value={form.modelName} onChange={(e) => handleChange('modelName', e.target.value)} placeholder="e.g. Qwen/Qwen2.5-7B-Instruct" />
-        </label>
-        <label>
-          Model Path
-          <input value={form.modelPath} onChange={(e) => handleChange('modelPath', e.target.value)} />
-        </label>
-        <label>
-          GPU Device
-          <input value={form.gpuDevice} onChange={(e) => handleChange('gpuDevice', e.target.value)} placeholder="e.g. cuda:0" />
-        </label>
-        <label>
-          Exec Command (for process management)
+          Exec Command
           <textarea value={form.execCommand} onChange={(e) => handleChange('execCommand', e.target.value)} rows={3}
-            placeholder="e.g. python -m vllm.entrypoints.openai.api_server --model /path/to/model --port 8001" />
+            placeholder="Auto-generated from GPU parameters, or enter manually" />
         </label>
         <label>
           Description
@@ -290,4 +370,12 @@ function ServiceFormModal({
       </div>
     </Modal>
   );
+}
+
+function parsePort(endpoint: string): string {
+  try {
+    return new URL(endpoint).port || '8001';
+  } catch {
+    return '8001';
+  }
 }
