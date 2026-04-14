@@ -312,7 +312,7 @@ function ServiceFormModal({
     setGpuParams((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Auto-generate exec_command + endpoint from GPU params
+  // Auto-generate exec_command + endpoint + extraEnv from GPU params
   const generateCommand = () => {
     if (!form.modelPath) return;
     const parts = [
@@ -327,6 +327,10 @@ function ServiceFormModal({
     ];
     if (form.modelName) parts.push(`--served-model-name ${form.modelName}`);
     if (gpuParams.quantization) parts.push(`--quantization ${gpuParams.quantization}`);
+    if (parseInt(gpuParams.tensorParallel) > 1) {
+      parts.push('--disable-custom-all-reduce');
+      parts.push('--enforce-eager');
+    }
     if (gpuParams.extraArgs.trim()) parts.push(gpuParams.extraArgs.trim());
     const cmd = parts.join(' \\\n  ');
     setForm((prev) => ({
@@ -367,33 +371,53 @@ function ServiceFormModal({
           </div>
           {useGpuPanel ? (
             <div className={styles.gpuGrid}>
+              <label>GPU 设备
+                <span className={styles.fieldHint}>多卡自动设置张量并行</span>
+                <select value={form.gpuDevice} onChange={(e) => {
+                  const val = e.target.value;
+                  handleChange('gpuDevice', val);
+                  const tp = String(val ? val.split(',').length : 1);
+                  handleGpuParam('tensorParallel', tp);
+                }}>
+                  <option value="">自动</option>
+                  <option value="0">GPU 0（单卡）</option>
+                  <option value="1">GPU 1（单卡）</option>
+                  <option value="2">GPU 2（单卡）</option>
+                  <option value="3">GPU 3（单卡）</option>
+                  <option value="0,1">GPU 0,1（双卡）</option>
+                  <option value="2,3">GPU 2,3（双卡）</option>
+                  <option value="0,1,2,3">GPU 0-3（四卡）</option>
+                </select>
+              </label>
               <label>端口<input value={gpuParams.port} onChange={(e) => handleGpuParam('port', e.target.value)} /></label>
-              <label>GPU 设备<input value={form.gpuDevice} onChange={(e) => handleChange('gpuDevice', e.target.value)} placeholder="0 or 0,1" /></label>
               <label>张量并行
+                <span className={styles.fieldHint}>由 GPU 设备自动决定</span>
                 <select value={gpuParams.tensorParallel} onChange={(e) => handleGpuParam('tensorParallel', e.target.value)}>
-                  <option value="1">1</option><option value="2">2</option><option value="4">4</option>
+                  <option value="1">1（单卡）</option>
+                  <option value="2">2（双卡）</option>
+                  <option value="4">4（四卡）</option>
                 </select>
               </label>
               <label>最大上下文<input value={gpuParams.maxModelLen} onChange={(e) => handleGpuParam('maxModelLen', e.target.value)} /></label>
               <label>显存利用率
                 <select value={gpuParams.gpuMemUtil} onChange={(e) => handleGpuParam('gpuMemUtil', e.target.value)}>
                   <option value="0.80">80%</option><option value="0.85">85%</option>
-                  <option value="0.90">90%</option><option value="0.95">95%</option><option value="0.97">97%</option>
+                  <option value="0.90">90%（推荐）</option><option value="0.95">95%</option><option value="0.97">97%</option>
                 </select>
               </label>
               <label>精度
                 <select value={gpuParams.dtype} onChange={(e) => handleGpuParam('dtype', e.target.value)}>
-                  <option value="auto">auto</option><option value="half">half (fp16)</option><option value="bfloat16">bfloat16</option>
+                  <option value="auto">自动</option><option value="half">half (fp16)</option><option value="bfloat16">bfloat16</option>
                 </select>
               </label>
               <label>量化
                 <select value={gpuParams.quantization} onChange={(e) => handleGpuParam('quantization', e.target.value)}>
-                  <option value="">None</option><option value="awq">AWQ</option><option value="gptq">GPTQ</option><option value="squeezellm">SqueezeLLM</option>
+                  <option value="">无</option><option value="awq">AWQ</option><option value="gptq">GPTQ</option><option value="squeezellm">SqueezeLLM</option>
                 </select>
               </label>
               <label>额外参数<input value={gpuParams.extraArgs} onChange={(e) => handleGpuParam('extraArgs', e.target.value)} placeholder="--enforce-eager" /></label>
               <div style={{ gridColumn: '1 / -1' }}>
-                <button className={styles.btnDefault} onClick={generateCommand} type="button">生成命令</button>
+                <button className={styles.btnPrimary} onClick={generateCommand} type="button">生成启动命令</button>
               </div>
             </div>
           ) : null}
@@ -414,7 +438,13 @@ function ServiceFormModal({
         </label>
         <div className={styles.formActions}>
           <button className={styles.btnDefault} onClick={onClose}>取消</button>
-          <button className={styles.btnPrimary} onClick={() => onSave(form)}>保存</button>
+          <button className={styles.btnPrimary} onClick={() => {
+            const data: Record<string, unknown> = { ...form };
+            if (form.gpuDevice) {
+              data.extraEnv = { CUDA_VISIBLE_DEVICES: form.gpuDevice };
+            }
+            onSave(data);
+          }}>保存</button>
         </div>
       </div>
     </Modal>

@@ -185,6 +185,13 @@
   font-size: var(--font-size-xs);
 }
 
+.fieldHint {
+  display: block;
+  font-size: 10px;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
 .gpuGrid input,
 .gpuGrid select {
   width: 100%;
