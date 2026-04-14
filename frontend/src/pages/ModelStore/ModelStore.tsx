@@ -222,9 +222,9 @@ export default function ModelStore() {
       setPublishTarget(null);
       if (publishForm.createService) {
         showToast({
-          message: `${publishTarget.modelName} 已发布并创建引擎`,
+          message: `${publishTarget.modelName} 已发布并创建服务`,
           type: 'success',
-          action: { label: '去引擎管理', onClick: () => navigate('/inference/services') },
+          action: { label: '去模型服务', onClick: () => navigate('/services') },
         });
       } else {
         showToast({
@@ -770,7 +770,7 @@ export default function ModelStore() {
               <button className={styles.modalClose} onClick={() => setPublishTarget(null)}>&times;</button>
             </div>
             <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--color-text-secondary)', marginBottom: 'var(--space-3)' }}>
-              将下载的模型发布到模型中心，并可选择自动创建推理引擎。
+              将下载的模型发布到模型注册，并可选择自动创建模型服务。
             </p>
             <div className={styles.publishForm}>
               <h4>模型注册</h4>
@@ -788,11 +788,11 @@ export default function ModelStore() {
                 <label>描述</label>
                 <input value={publishForm.description} onChange={(e) => setPublishForm({ ...publishForm, description: e.target.value })} placeholder="可选" />
               </div>
-              <h4 style={{ marginTop: 'var(--space-4)' }}>部署引擎</h4>
+              <h4 style={{ marginTop: 'var(--space-4)' }}>模型服务</h4>
               <div className={styles.formRow}>
                 <label>自动创建</label>
                 <input type="checkbox" checked={publishForm.createService} onChange={(e) => setPublishForm({ ...publishForm, createService: e.target.checked })} />
-                <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)' }}>自动创建 vLLM 推理引擎</span>
+                <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--color-text-tertiary)' }}>自动创建 vLLM 模型服务</span>
               </div>
               {publishForm.createService && (
                 <>

@@ -93,6 +93,17 @@ export default function ServiceList() {
     }
   };
 
+  const handleToggleStatus = async (svc: LLMService) => {
+    const newStatus = svc.status === 'enabled' ? 'disabled' : 'enabled';
+    try {
+      await api.put(`/services/${svc.id}`, { status: newStatus });
+      showToast({ type: 'success', message: newStatus === 'enabled' ? '已启用' : '已禁用' });
+      fetchServices();
+    } catch (e) {
+      showToast({ type: 'error', message: e instanceof ApiError ? e.detail : '操作失败' });
+    }
+  };
+
   const handleSave = async (data: Record<string, unknown>) => {
     try {
       if (editingService) {
@@ -141,6 +152,7 @@ export default function ServiceList() {
             <th>名称</th>
             <th>端点</th>
             <th>模型</th>
+            <th>状态</th>
             <th>进程</th>
             <th>健康</th>
             {isAdmin && <th>操作</th>}
@@ -159,6 +171,11 @@ export default function ServiceList() {
                 </td>
                 <td className={styles.mono}>{svc.endpoint}</td>
                 <td>{svc.modelName || '-'}</td>
+                <td>
+                  <Badge variant={svc.status === 'enabled' ? 'success' : 'default'}>
+                    {svc.status === 'enabled' ? '已启用' : '已禁用'}
+                  </Badge>
+                </td>
                 <td>
                   {proc ? (
                     <Badge variant={proc.running ? 'success' : 'default'}>
@@ -190,6 +207,9 @@ export default function ServiceList() {
                         </button>
                       )
                     )}
+                    <button className={styles.btnSmall} onClick={() => handleToggleStatus(svc)}>
+                      {svc.status === 'enabled' ? '禁用' : '启用'}
+                    </button>
                     <button className={styles.btnSmall} onClick={() => { setEditingService(svc); setShowForm(true); }}>编辑</button>
                     <button className={styles.btnSmall} onClick={() => { checkHealth(svc.id); checkProcess(svc.id); }}>刷新</button>
                     <button className={styles.btnSmallDanger} onClick={() => setDeleteTarget(svc)}>删除</button>
@@ -199,7 +219,7 @@ export default function ServiceList() {
             );
           })}
           {services.length === 0 && (
-            <tr><td colSpan={isAdmin ? 6 : 5} className={styles.empty}>暂无已注册服务</td></tr>
+            <tr><td colSpan={isAdmin ? 7 : 6} className={styles.empty}>暂无已注册服务</td></tr>
           )}
         </tbody>
       </table>
