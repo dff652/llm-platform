@@ -337,7 +337,7 @@ function ServiceFormModal({
   };
 
   return (
-    <Modal open onClose={onClose} title={service ? '编辑服务' : '添加服务'}>
+    <Modal open onClose={onClose} title={service ? '编辑服务' : '添加服务'} size="lg">
       <div className={styles.form}>
         <label>
           名称（唯一标识）
