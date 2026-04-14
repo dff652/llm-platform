@@ -26,6 +26,8 @@ export default function ServiceList() {
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<LLMService | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<LLMService | null>(null);
+  const [logTarget, setLogTarget] = useState<LLMService | null>(null);
+  const [logContent, setLogContent] = useState('');
 
   const fetchServices = useCallback(async () => {
     try {
@@ -104,6 +106,17 @@ export default function ServiceList() {
     }
   };
 
+  const handleViewLog = async (svc: LLMService) => {
+    setLogTarget(svc);
+    setLogContent('加载中...');
+    try {
+      const res = await api.get<{ lines: string[] }>(`/services/${svc.id}/logs`, { lines: 200 });
+      setLogContent(res.lines.join('\n') || '暂无日志');
+    } catch {
+      setLogContent('加载日志失败');
+    }
+  };
+
   const handleSave = async (data: Record<string, unknown>) => {
     try {
       if (editingService) {
@@ -172,9 +185,17 @@ export default function ServiceList() {
                 <td className={styles.mono}>{svc.endpoint}</td>
                 <td>{svc.modelName || '-'}</td>
                 <td>
-                  <Badge variant={svc.status === 'enabled' ? 'success' : 'default'}>
-                    {svc.status === 'enabled' ? '已启用' : '已禁用'}
-                  </Badge>
+                  {isAdmin ? (
+                    <label className={styles.switch} title={svc.status === 'enabled' ? '点击禁用' : '点击启用'}>
+                      <input type="checkbox" checked={svc.status === 'enabled'} onChange={() => handleToggleStatus(svc)} />
+                      <span className={styles.slider} />
+                      <span className={styles.switchLabel}>{svc.status === 'enabled' ? '启用' : '禁用'}</span>
+                    </label>
+                  ) : (
+                    <Badge variant={svc.status === 'enabled' ? 'success' : 'default'}>
+                      {svc.status === 'enabled' ? '已启用' : '已禁用'}
+                    </Badge>
+                  )}
                 </td>
                 <td>
                   {proc ? (
@@ -196,7 +217,7 @@ export default function ServiceList() {
                 </td>
                 {isAdmin && (
                   <td className={styles.actions}>
-                    {svc.execCommand && (
+                    {svc.execCommand ? (
                       proc?.running ? (
                         <button className={styles.btnSmallDanger} onClick={() => handleStop(svc)} disabled={!!action}>
                           {action === 'stopping' ? '停止中...' : '停止'}
@@ -206,10 +227,10 @@ export default function ServiceList() {
                           {action === 'starting' ? '启动中...' : '启动'}
                         </button>
                       )
+                    ) : (
+                      <span className={styles.noCmd} title="在编辑中配置启动命令后可启停">无命令</span>
                     )}
-                    <button className={styles.btnSmall} onClick={() => handleToggleStatus(svc)}>
-                      {svc.status === 'enabled' ? '禁用' : '启用'}
-                    </button>
+                    <button className={styles.btnSmall} onClick={() => handleViewLog(svc)}>日志</button>
                     <button className={styles.btnSmall} onClick={() => { setEditingService(svc); setShowForm(true); }}>编辑</button>
                     <button className={styles.btnSmall} onClick={() => { checkHealth(svc.id); checkProcess(svc.id); }}>刷新</button>
                     <button className={styles.btnSmallDanger} onClick={() => setDeleteTarget(svc)}>删除</button>
@@ -239,6 +260,12 @@ export default function ServiceList() {
         onConfirm={handleDelete}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {logTarget && (
+        <Modal open onClose={() => setLogTarget(null)} title={`日志 — ${logTarget.displayName}`}>
+          <pre className={styles.logPre}>{logContent}</pre>
+        </Modal>
+      )}
     </div>
   );
 }
