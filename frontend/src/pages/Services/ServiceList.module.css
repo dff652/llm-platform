@@ -240,11 +240,15 @@
   color: var(--color-text-secondary);
 }
 
-.noCmd {
-  font-size: var(--font-size-xs);
-  color: var(--color-text-secondary);
-  cursor: help;
-  border-bottom: 1px dashed var(--color-border);
+.btnSmallWarn {
+  composes: btnSmall;
+  color: #fa8c16;
+  border-color: #fa8c16;
+}
+
+.btnSmallWarn:hover {
+  background: #fa8c16;
+  color: white;
 }
 
 /* Log modal */

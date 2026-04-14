@@ -228,7 +228,9 @@ export default function ServiceList() {
                         </button>
                       )
                     ) : (
-                      <span className={styles.noCmd} title="此服务由外部管理。如需平台启停，请在编辑中配置启动命令">外部管理</span>
+                      <button className={styles.btnSmallWarn} onClick={() => { setEditingService(svc); setShowForm(true); }}>
+                        配置命令
+                      </button>
                     )}
                     <button className={styles.btnSmall} onClick={() => handleViewLog(svc)}>日志</button>
                     <button className={styles.btnSmall} onClick={() => { setEditingService(svc); setShowForm(true); }}>编辑</button>
