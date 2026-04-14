@@ -105,6 +105,21 @@
   color: white;
 }
 
+.btnSmallSuccess {
+  composes: btnSmall;
+  color: #52c41a;
+  border-color: #52c41a;
+}
+
+.btnSmallSuccess:hover {
+  background: #52c41a;
+  color: white;
+}
+
+.actions {
+  white-space: nowrap;
+}
+
 .form {
   display: flex;
   flex-direction: column;

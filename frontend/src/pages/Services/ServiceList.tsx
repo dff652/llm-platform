@@ -8,6 +8,12 @@ import { ConfirmDialog } from '../../components/common/ConfirmDialog';
 import type { LLMService, ServiceHealth } from '../../types';
 import styles from './ServiceList.module.css';
 
+interface ProcessStatus {
+  running: boolean;
+  port?: number;
+  pid?: number;
+}
+
 export default function ServiceList() {
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === 'admin';
@@ -15,6 +21,8 @@ export default function ServiceList() {
   const [services, setServices] = useState<LLMService[]>([]);
   const [loading, setLoading] = useState(true);
   const [healthMap, setHealthMap] = useState<Record<number, ServiceHealth>>({});
+  const [processMap, setProcessMap] = useState<Record<number, ProcessStatus>>({});
+  const [actionLoading, setActionLoading] = useState<Record<number, string>>({});
   const [showForm, setShowForm] = useState(false);
   const [editingService, setEditingService] = useState<LLMService | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<LLMService | null>(null);
@@ -30,9 +38,7 @@ export default function ServiceList() {
     }
   }, [showToast]);
 
-  useEffect(() => {
-    fetchServices();
-  }, [fetchServices]);
+  useEffect(() => { fetchServices(); }, [fetchServices]);
 
   const checkHealth = useCallback(async (id: number) => {
     try {
@@ -43,9 +49,49 @@ export default function ServiceList() {
     }
   }, []);
 
+  const checkProcess = useCallback(async (id: number) => {
+    try {
+      const status = await api.get<ProcessStatus>(`/services/${id}/process`);
+      setProcessMap((prev) => ({ ...prev, [id]: status }));
+    } catch {
+      // ignore
+    }
+  }, []);
+
   useEffect(() => {
-    services.forEach((svc) => checkHealth(svc.id));
-  }, [services, checkHealth]);
+    services.forEach((svc) => {
+      checkHealth(svc.id);
+      checkProcess(svc.id);
+    });
+  }, [services, checkHealth, checkProcess]);
+
+  const handleStart = async (svc: LLMService) => {
+    setActionLoading((prev) => ({ ...prev, [svc.id]: 'starting' }));
+    try {
+      const res = await api.post<{ success: boolean; message: string }>(`/services/${svc.id}/start`);
+      showToast({ type: res.success ? 'success' : 'error', message: res.message });
+      checkProcess(svc.id);
+      checkHealth(svc.id);
+    } catch (e) {
+      showToast({ type: 'error', message: e instanceof ApiError ? e.detail : 'Start failed' });
+    } finally {
+      setActionLoading((prev) => { const n = { ...prev }; delete n[svc.id]; return n; });
+    }
+  };
+
+  const handleStop = async (svc: LLMService) => {
+    setActionLoading((prev) => ({ ...prev, [svc.id]: 'stopping' }));
+    try {
+      const res = await api.post<{ success: boolean; message: string }>(`/services/${svc.id}/stop`);
+      showToast({ type: 'success', message: res.message });
+      checkProcess(svc.id);
+      checkHealth(svc.id);
+    } catch (e) {
+      showToast({ type: 'error', message: e instanceof ApiError ? e.detail : 'Stop failed' });
+    } finally {
+      setActionLoading((prev) => { const n = { ...prev }; delete n[svc.id]; return n; });
+    }
+  };
 
   const handleSave = async (data: Record<string, unknown>) => {
     try {
@@ -95,7 +141,7 @@ export default function ServiceList() {
             <th>Name</th>
             <th>Endpoint</th>
             <th>Model</th>
-            <th>Status</th>
+            <th>Process</th>
             <th>Health</th>
             {isAdmin && <th>Actions</th>}
           </tr>
@@ -103,6 +149,8 @@ export default function ServiceList() {
         <tbody>
           {services.map((svc) => {
             const health = healthMap[svc.id];
+            const proc = processMap[svc.id];
+            const action = actionLoading[svc.id];
             return (
               <tr key={svc.id}>
                 <td>
@@ -111,20 +159,39 @@ export default function ServiceList() {
                 </td>
                 <td className={styles.mono}>{svc.endpoint}</td>
                 <td>{svc.modelName || '-'}</td>
-                <td><Badge variant={svc.status === 'enabled' ? 'success' : 'default'}>{svc.status}</Badge></td>
+                <td>
+                  {proc ? (
+                    <Badge variant={proc.running ? 'success' : 'default'}>
+                      {proc.running ? `Running (PID ${proc.pid})` : 'Stopped'}
+                    </Badge>
+                  ) : (
+                    <span className={styles.subText}>...</span>
+                  )}
+                </td>
                 <td>
                   {health ? (
                     <Badge variant={health.healthy ? 'success' : 'danger'}>
                       {health.healthy ? 'Healthy' : 'Unhealthy'}
                     </Badge>
                   ) : (
-                    <span className={styles.subText}>Checking...</span>
+                    <span className={styles.subText}>...</span>
                   )}
                 </td>
                 {isAdmin && (
-                  <td>
+                  <td className={styles.actions}>
+                    {svc.execCommand && (
+                      proc?.running ? (
+                        <button className={styles.btnSmallDanger} onClick={() => handleStop(svc)} disabled={!!action}>
+                          {action === 'stopping' ? 'Stopping...' : 'Stop'}
+                        </button>
+                      ) : (
+                        <button className={styles.btnSmallSuccess} onClick={() => handleStart(svc)} disabled={!!action}>
+                          {action === 'starting' ? 'Starting...' : 'Start'}
+                        </button>
+                      )
+                    )}
                     <button className={styles.btnSmall} onClick={() => { setEditingService(svc); setShowForm(true); }}>Edit</button>
-                    <button className={styles.btnSmall} onClick={() => checkHealth(svc.id)}>Check</button>
+                    <button className={styles.btnSmall} onClick={() => { checkHealth(svc.id); checkProcess(svc.id); }}>Refresh</button>
                     <button className={styles.btnSmallDanger} onClick={() => setDeleteTarget(svc)}>Delete</button>
                   </td>
                 )}
@@ -209,7 +276,8 @@ function ServiceFormModal({
         </label>
         <label>
           Exec Command (for process management)
-          <textarea value={form.execCommand} onChange={(e) => handleChange('execCommand', e.target.value)} rows={2} />
+          <textarea value={form.execCommand} onChange={(e) => handleChange('execCommand', e.target.value)} rows={3}
+            placeholder="e.g. python -m vllm.entrypoints.openai.api_server --model /path/to/model --port 8001" />
         </label>
         <label>
           Description

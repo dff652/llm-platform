@@ -184,6 +184,33 @@ async def get_model_distribution(
     return distribution
 
 
+@router.get("/token-usage-daily")
+async def get_token_usage_daily(
+    _user: CurrentUser,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    days: int = Query(14, ge=1, le=90),
+):
+    """Daily token usage for bar chart."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+    result = await db.execute(
+        select(ChatLog.created_at, ChatLog.prompt_tokens, ChatLog.completion_tokens)
+        .where(ChatLog.created_at >= cutoff)
+    )
+
+    daily: dict[str, dict] = defaultdict(lambda: {"prompt": 0, "completion": 0, "total": 0, "requests": 0})
+    for created_at, prompt, completion in result.all():
+        if created_at:
+            day = created_at.strftime("%Y-%m-%d")
+            daily[day]["prompt"] += prompt or 0
+            daily[day]["completion"] += completion or 0
+            daily[day]["total"] += (prompt or 0) + (completion or 0)
+            daily[day]["requests"] += 1
+
+    usage = [{"date": k, **v} for k, v in sorted(daily.items())]
+    return {"days": days, "usage": usage}
+
+
 @router.get("/recent-requests")
 async def list_recent_requests(
     _user: AdminUser,
