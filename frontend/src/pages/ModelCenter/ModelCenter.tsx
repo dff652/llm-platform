@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api, ApiError } from '../../services/api';
 import { useAuthStore } from '../../stores/authStore';
 import { useUiStore } from '../../stores/uiStore';
@@ -9,6 +10,7 @@ import type { ModelEntity, LLMService } from '../../types';
 import styles from './ModelCenter.module.css';
 
 export default function ModelCenter() {
+  const navigate = useNavigate();
   const isAdmin = useAuthStore((s) => s.user?.role === 'admin');
   const showToast = useUiStore((s) => s.showToast);
   const [models, setModels] = useState<ModelEntity[]>([]);
@@ -148,6 +150,7 @@ export default function ModelCenter() {
 
                 {isAdmin && (
                   <div className={styles.cardActions}>
+                    <button className={styles.btnPrimarySmall} onClick={() => navigate(`/services?create=1&modelId=${model.id}`)}>+ 部署服务</button>
                     <button className={styles.btnEdit} onClick={() => { setEditingModel(model); setShowForm(true); }}>编辑</button>
                     <button className={styles.btnDanger} onClick={() => setDeleteTarget(model)}>删除</button>
                   </div>

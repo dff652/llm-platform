@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../../services/api';
 import { useUiStore } from '../../stores/uiStore';
 import { useAuthStore } from '../../stores/authStore';
@@ -15,6 +16,7 @@ interface ProcessStatus {
 }
 
 export default function ServiceList() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const user = useAuthStore((s) => s.user);
   const isAdmin = user?.role === 'admin';
   const showToast = useUiStore((s) => s.showToast);
@@ -24,10 +26,21 @@ export default function ServiceList() {
   const [processMap, setProcessMap] = useState<Record<number, ProcessStatus>>({});
   const [actionLoading, setActionLoading] = useState<Record<number, string>>({});
   const [showForm, setShowForm] = useState(false);
+  const [preSelectModelId, setPreSelectModelId] = useState<number | null>(null);
   const [editingService, setEditingService] = useState<LLMService | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<LLMService | null>(null);
   const [logTarget, setLogTarget] = useState<LLMService | null>(null);
   const [logContent, setLogContent] = useState('');
+
+  // Handle ?create=1&modelId=X from model center "部署服务" button
+  useEffect(() => {
+    if (searchParams.get('create') === '1' && isAdmin) {
+      const mid = searchParams.get('modelId');
+      if (mid) setPreSelectModelId(Number(mid));
+      setShowForm(true);
+      setSearchParams({}, { replace: true });
+    }
+  }, [searchParams, isAdmin, setSearchParams]);
 
   const fetchServices = useCallback(async () => {
     try {
@@ -250,8 +263,9 @@ export default function ServiceList() {
       {showForm && (
         <ServiceFormModal
           service={editingService}
-          onSave={handleSave}
-          onClose={() => { setShowForm(false); setEditingService(null); }}
+          preSelectModelId={preSelectModelId}
+          onSave={(data) => { handleSave(data); setPreSelectModelId(null); }}
+          onClose={() => { setShowForm(false); setEditingService(null); setPreSelectModelId(null); }}
         />
       )}
 
@@ -312,9 +326,10 @@ function buildCmd(opts: {
 }
 
 function ServiceFormModal({
-  service, onSave, onClose,
+  service, preSelectModelId, onSave, onClose,
 }: {
   service: LLMService | null;
+  preSelectModelId?: number | null;
   onSave: (data: Record<string, unknown>) => void;
   onClose: () => void;
 }) {
@@ -325,9 +340,19 @@ function ServiceFormModal({
   const [selectedModelId, setSelectedModelId] = useState<number | null>(null);
   useEffect(() => {
     api.get<{ items: RegisteredModel[] }>('/models', { pageSize: 100 })
-      .then((res) => setModels(res.items || []))
+      .then((res) => {
+        setModels(res.items || []);
+        // Auto-select model from URL param
+        if (preSelectModelId && !isEdit) {
+          const found = (res.items || []).find((m: RegisteredModel) => m.id === preSelectModelId);
+          if (found) {
+            // Trigger auto-fill after models are loaded
+            setTimeout(() => handleModelSelect(preSelectModelId), 0);
+          }
+        }
+      })
       .catch(() => {});
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Form fields
   const [name, setName] = useState(service?.name || '');
