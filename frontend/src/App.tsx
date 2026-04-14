@@ -15,6 +15,7 @@ import ModelCenter from './pages/ModelCenter/ModelCenter';
 import ModelStore from './pages/ModelStore/ModelStore';
 import UserManagement from './pages/UserManagement/UserManagement';
 import ApiKeys from './pages/ApiKeys/ApiKeys';
+import Chat from './pages/Chat/Chat';
 import ApiDocs from './pages/ApiDocs/ApiDocs';
 import Settings from './pages/Settings/Settings';
 import SystemLogs from './pages/Settings/SystemLogs';
@@ -40,6 +41,7 @@ function App() {
         <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
           <Route index element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/chat" element={<Chat />} />
           <Route path="/services" element={<ServiceList />} />
           <Route path="/models" element={<ModelCenter />} />
           <Route path="/model-store" element={<ModelStore />} />

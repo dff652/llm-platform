@@ -71,6 +71,12 @@ const icons = {
       <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M4.22 15.78l1.42-1.42M14.36 5.64l1.42-1.42" />
     </svg>
   ),
+  chat: (
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M3 4h14a1 1 0 011 1v8a1 1 0 01-1 1H7l-4 3v-3a1 1 0 01-1-1V5a1 1 0 011-1z" />
+      <path d="M7 8h6M7 11h3" />
+    </svg>
+  ),
   docs: (
     <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M4 3h9l3 3v11H4z" />
@@ -87,6 +93,7 @@ const icons = {
 
 const NAV_ENTRIES: NavEntry[] = [
   { path: '/dashboard', label: '总览', icon: icons.dashboard },
+  { path: '/chat', label: 'Chat', icon: icons.chat },
   { path: '/services', label: '模型服务', icon: icons.inference },
   { path: '/api-docs', label: 'API 文档', icon: icons.docs },
   {
