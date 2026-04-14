@@ -272,189 +272,297 @@ export default function ServiceList() {
   );
 }
 
+interface RegisteredModel {
+  id: number;
+  name: string;
+  family: string;
+  artifactUri: string | null;
+}
+
+function parsePort(endpoint: string): string {
+  try { return new URL(endpoint).port || '8001'; } catch { return '8001'; }
+}
+
+function parseCmdFlag(cmd: string, flag: string, fallback: string): string {
+  const m = cmd.match(new RegExp(`${flag}\\s+(\\S+)`));
+  return m ? m[1]! : fallback;
+}
+
+function buildCmd(opts: {
+  modelPath: string; port: string; modelName: string; gpuMemUtil: string;
+  maxModelLen: string; tensorParallel: string; dtype: string; quantization: string; extraArgs: string;
+}): string {
+  const parts = [
+    'python -m vllm.entrypoints.openai.api_server',
+    `--model ${opts.modelPath}`,
+    `--port ${opts.port}`,
+    `--tensor-parallel-size ${opts.tensorParallel}`,
+    `--max-model-len ${opts.maxModelLen}`,
+    `--gpu-memory-utilization ${opts.gpuMemUtil}`,
+    `--dtype ${opts.dtype}`,
+    '--trust-remote-code',
+  ];
+  if (opts.modelName) parts.push(`--served-model-name ${opts.modelName}`);
+  if (opts.quantization) parts.push(`--quantization ${opts.quantization}`);
+  if (parseInt(opts.tensorParallel) > 1) {
+    parts.push('--disable-custom-all-reduce', '--enforce-eager');
+  }
+  if (opts.extraArgs.trim()) parts.push(opts.extraArgs.trim());
+  return parts.join(' \\\n  ');
+}
+
 function ServiceFormModal({
-  service,
-  onSave,
-  onClose,
+  service, onSave, onClose,
 }: {
   service: LLMService | null;
   onSave: (data: Record<string, unknown>) => void;
   onClose: () => void;
 }) {
-  const [form, setForm] = useState({
-    name: service?.name || '',
-    displayName: service?.displayName || '',
-    endpoint: service?.endpoint || '',
-    modelName: service?.modelName || '',
-    modelPath: service?.modelPath || '',
-    gpuDevice: service?.gpuDevice || '',
-    description: service?.description || '',
-    execCommand: service?.execCommand || '',
-  });
+  const isEdit = !!service;
 
-  // GPU parameter panel state
-  const [useGpuPanel, setUseGpuPanel] = useState(!service?.execCommand);
-  const [gpuParams, setGpuParams] = useState({
-    port: service?.endpoint ? parsePort(service.endpoint) : '8001',
-    tensorParallel: '1',
-    maxModelLen: '4096',
-    gpuMemUtil: '0.90',
-    dtype: 'auto',
-    quantization: '',
-    extraArgs: '',
-  });
+  // Registered models for selection
+  const [models, setModels] = useState<RegisteredModel[]>([]);
+  const [selectedModelId, setSelectedModelId] = useState<number | null>(null);
+  useEffect(() => {
+    api.get<{ items: RegisteredModel[] }>('/models', { pageSize: 100 })
+      .then((res) => setModels(res.items || []))
+      .catch(() => {});
+  }, []);
 
-  const handleChange = (field: string, value: string) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+  // Form fields
+  const [name, setName] = useState(service?.name || '');
+  const [displayName, setDisplayName] = useState(service?.displayName || '');
+  const [modelPath, setModelPath] = useState(service?.modelPath || '');
+  const [modelName, setModelName] = useState(service?.modelName || '');
+  const [description, setDescription] = useState(service?.description || '');
+  const [endpoint, setEndpoint] = useState(service?.endpoint || '');
+  const [execCommand, setExecCommand] = useState(service?.execCommand || '');
+  const [gpuDevice, setGpuDevice] = useState(service?.gpuDevice || service?.extraEnv?.CUDA_VISIBLE_DEVICES || '');
 
-  const handleGpuParam = (field: string, value: string) => {
-    setGpuParams((prev) => ({ ...prev, [field]: value }));
-  };
+  // Track if user manually edited derived fields
+  const [nameManual, setNameManual] = useState(isEdit);
+  const [displayNameManual, setDisplayNameManual] = useState(isEdit);
+  const [endpointManual, setEndpointManual] = useState(isEdit);
 
-  // Auto-generate exec_command + endpoint + extraEnv from GPU params
-  const generateCommand = () => {
-    if (!form.modelPath) return;
-    const parts = [
-      'python -m vllm.entrypoints.openai.api_server',
-      `--model ${form.modelPath}`,
-      `--port ${gpuParams.port}`,
-      `--tensor-parallel-size ${gpuParams.tensorParallel}`,
-      `--max-model-len ${gpuParams.maxModelLen}`,
-      `--gpu-memory-utilization ${gpuParams.gpuMemUtil}`,
-      `--dtype ${gpuParams.dtype}`,
-      '--trust-remote-code',
-    ];
-    if (form.modelName) parts.push(`--served-model-name ${form.modelName}`);
-    if (gpuParams.quantization) parts.push(`--quantization ${gpuParams.quantization}`);
-    if (parseInt(gpuParams.tensorParallel) > 1) {
-      parts.push('--disable-custom-all-reduce');
-      parts.push('--enforce-eager');
+  // GPU params — parse from existing exec_command if editing
+  const [port, setPort] = useState(service?.endpoint ? parsePort(service.endpoint) : '8003');
+  const [tensorParallel, setTensorParallel] = useState(parseCmdFlag(service?.execCommand || '', '--tensor-parallel-size', '1'));
+  const [maxModelLen, setMaxModelLen] = useState(parseCmdFlag(service?.execCommand || '', '--max-model-len', '4096'));
+  const [gpuMemUtil, setGpuMemUtil] = useState(parseCmdFlag(service?.execCommand || '', '--gpu-memory-utilization', '0.90'));
+  const [dtype, setDtype] = useState(parseCmdFlag(service?.execCommand || '', '--dtype', 'auto'));
+  const [quantization, setQuantization] = useState(parseCmdFlag(service?.execCommand || '', '--quantization', ''));
+  const [extraArgs, setExtraArgs] = useState('');
+
+  // Connection test
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [testing, setTesting] = useState(false);
+
+  // Rebuild command whenever GPU params change
+  const rebuildCmd = useCallback((overrides?: Record<string, string>) => {
+    const mp = overrides?.modelPath ?? modelPath;
+    if (!mp) return;
+    const cmd = buildCmd({
+      modelPath: mp,
+      port: overrides?.port ?? port,
+      modelName: overrides?.modelName ?? modelName,
+      gpuMemUtil: overrides?.gpuMemUtil ?? gpuMemUtil,
+      maxModelLen: overrides?.maxModelLen ?? maxModelLen,
+      tensorParallel: overrides?.tensorParallel ?? tensorParallel,
+      dtype: overrides?.dtype ?? dtype,
+      quantization: overrides?.quantization ?? quantization,
+      extraArgs: overrides?.extraArgs ?? extraArgs,
+    });
+    setExecCommand(cmd);
+    if (!endpointManual) setEndpoint(`http://localhost:${overrides?.port ?? port}`);
+  }, [modelPath, port, modelName, gpuMemUtil, maxModelLen, tensorParallel, dtype, quantization, extraArgs, endpointManual]);
+
+  // Select registered model → auto-fill everything
+  const handleModelSelect = (id: number | null) => {
+    setSelectedModelId(id);
+    if (!id) return;
+    const model = models.find((m) => m.id === id);
+    if (!model) return;
+    setModelPath(model.artifactUri || '');
+    setModelName(model.family);
+    if (!nameManual) setName(`svc-${model.name.toLowerCase().replace(/[^a-z0-9-]/g, '-')}`);
+    if (!displayNameManual) setDisplayName(model.name);
+    setDescription(`${model.name} 推理服务`);
+    if (!endpointManual) setEndpoint(`http://localhost:${port}`);
+    if (model.artifactUri) {
+      const cmd = buildCmd({
+        modelPath: model.artifactUri, port, modelName: model.family,
+        gpuMemUtil, maxModelLen, tensorParallel, dtype, quantization, extraArgs,
+      });
+      setExecCommand(cmd);
     }
-    if (gpuParams.extraArgs.trim()) parts.push(gpuParams.extraArgs.trim());
-    const cmd = parts.join(' \\\n  ');
-    setForm((prev) => ({
-      ...prev,
-      execCommand: cmd,
-      endpoint: `http://localhost:${gpuParams.port}`,
-    }));
+  };
+
+  const handleTestConnection = async () => {
+    if (!endpoint.trim()) { setTestResult({ ok: false, msg: '请填写端点' }); return; }
+    setTesting(true); setTestResult(null);
+    try {
+      const url = endpoint.trim().replace(/\/$/, '') + '/v1/models';
+      const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        const data = await res.json();
+        const names = data.data?.map((m: { id: string }) => m.id) ?? [];
+        setTestResult({ ok: true, msg: names.length ? `连接正常，模型: ${names.join(', ')}` : '连接正常' });
+      } else {
+        setTestResult({ ok: false, msg: `HTTP ${res.status}` });
+      }
+    } catch { setTestResult({ ok: false, msg: '无法连接' }); }
+    finally { setTesting(false); }
+  };
+
+  const handleSubmit = () => {
+    const data: Record<string, unknown> = {
+      name, displayName, endpoint, modelName, modelPath, gpuDevice, description, execCommand,
+    };
+    if (gpuDevice) data.extraEnv = { CUDA_VISIBLE_DEVICES: gpuDevice };
+    onSave(data);
   };
 
   return (
-    <Modal open onClose={onClose} title={service ? '编辑服务' : '添加服务'} size="lg">
+    <Modal open onClose={onClose} title={isEdit ? '编辑服务' : '添加服务'} size="lg">
       <div className={styles.form}>
-        <label>
-          名称（唯一标识）
-          <input value={form.name} onChange={(e) => handleChange('name', e.target.value)} disabled={!!service} />
-        </label>
-        <label>
-          显示名称
-          <input value={form.displayName} onChange={(e) => handleChange('displayName', e.target.value)} />
-        </label>
-        <label>
-          模型路径
-          <input value={form.modelPath} onChange={(e) => handleChange('modelPath', e.target.value)} placeholder="/path/to/model" />
-        </label>
-        <label>
-          模型名称（用于路由）
-          <input value={form.modelName} onChange={(e) => handleChange('modelName', e.target.value)} placeholder="e.g. qwen or Qwen/Qwen2.5-7B" />
-        </label>
+        {/* Model selector (create mode only) */}
+        {!isEdit && models.length > 0 && (
+          <label>
+            从已注册模型创建
+            <span className={styles.fieldHint}>选择后自动填充路径和名称，也可跳过手动填写</span>
+            <select value={selectedModelId ?? ''} onChange={(e) => handleModelSelect(e.target.value ? Number(e.target.value) : null)}>
+              <option value="">— 手动填写 —</option>
+              {models.map((m) => (
+                <option key={m.id} value={m.id}>{m.name} ({m.family})</option>
+              ))}
+            </select>
+          </label>
+        )}
 
-        {/* GPU Parameter Panel */}
+        <div className={styles.formRow2}>
+          <label>
+            名称（唯一标识）
+            <input value={name} disabled={isEdit}
+              onChange={(e) => { setName(e.target.value); setNameManual(true); }} />
+          </label>
+          <label>
+            显示名称
+            <input value={displayName}
+              onChange={(e) => { setDisplayName(e.target.value); setDisplayNameManual(true); }} />
+          </label>
+        </div>
+
+        <div className={styles.formRow2}>
+          <label>
+            模型路径
+            <input value={modelPath} placeholder="/path/to/model"
+              onChange={(e) => { setModelPath(e.target.value); rebuildCmd({ modelPath: e.target.value }); }} />
+          </label>
+          <label>
+            模型名称（served-model-name，用于 API 路由）
+            <input value={modelName} placeholder="如 qwen"
+              onChange={(e) => { setModelName(e.target.value); rebuildCmd({ modelName: e.target.value }); }} />
+          </label>
+        </div>
+
+        {/* GPU params */}
         <div className={styles.gpuPanel}>
           <div className={styles.gpuPanelHeader}>
-            <strong>GPU 参数</strong>
-            <label className={styles.toggleSmall}>
-              <input type="checkbox" checked={useGpuPanel} onChange={(e) => setUseGpuPanel(e.target.checked)} />
-              自动生成命令
+            <strong>GPU / vLLM 参数</strong>
+          </div>
+          <div className={styles.gpuGrid}>
+            <label>GPU 设备
+              <span className={styles.fieldHint}>多卡自动设置张量并行</span>
+              <select value={gpuDevice} onChange={(e) => {
+                const val = e.target.value;
+                setGpuDevice(val);
+                const tp = String(val ? val.split(',').length : 1);
+                setTensorParallel(tp);
+                rebuildCmd({ tensorParallel: tp });
+              }}>
+                <option value="">自动</option>
+                <option value="0">GPU 0</option>
+                <option value="1">GPU 1</option>
+                <option value="2">GPU 2</option>
+                <option value="3">GPU 3</option>
+                <option value="0,1">GPU 0,1（双卡）</option>
+                <option value="2,3">GPU 2,3（双卡）</option>
+                <option value="0,1,2,3">GPU 0-3（四卡）</option>
+              </select>
+            </label>
+            <label>端口
+              <input value={port} onChange={(e) => {
+                setPort(e.target.value);
+                if (!endpointManual) setEndpoint(`http://localhost:${e.target.value}`);
+                rebuildCmd({ port: e.target.value });
+              }} />
+            </label>
+            <label>张量并行
+              <select value={tensorParallel} onChange={(e) => { setTensorParallel(e.target.value); rebuildCmd({ tensorParallel: e.target.value }); }}>
+                <option value="1">1</option><option value="2">2</option><option value="4">4</option>
+              </select>
+            </label>
+            <label>最大上下文
+              <input value={maxModelLen} onChange={(e) => { setMaxModelLen(e.target.value); rebuildCmd({ maxModelLen: e.target.value }); }} />
+            </label>
+            <label>显存利用率
+              <select value={gpuMemUtil} onChange={(e) => { setGpuMemUtil(e.target.value); rebuildCmd({ gpuMemUtil: e.target.value }); }}>
+                <option value="0.80">80%</option><option value="0.85">85%</option>
+                <option value="0.90">90%</option><option value="0.95">95%</option><option value="0.97">97%</option>
+              </select>
+            </label>
+            <label>精度
+              <select value={dtype} onChange={(e) => { setDtype(e.target.value); rebuildCmd({ dtype: e.target.value }); }}>
+                <option value="auto">auto</option><option value="half">fp16</option><option value="bfloat16">bf16</option>
+              </select>
+            </label>
+            <label>量化
+              <select value={quantization} onChange={(e) => { setQuantization(e.target.value); rebuildCmd({ quantization: e.target.value }); }}>
+                <option value="">无</option><option value="awq">AWQ</option><option value="gptq">GPTQ</option>
+              </select>
+            </label>
+            <label>额外参数
+              <input value={extraArgs} placeholder="--enforce-eager" onChange={(e) => { setExtraArgs(e.target.value); rebuildCmd({ extraArgs: e.target.value }); }} />
             </label>
           </div>
-          {useGpuPanel ? (
-            <div className={styles.gpuGrid}>
-              <label>GPU 设备
-                <span className={styles.fieldHint}>多卡自动设置张量并行</span>
-                <select value={form.gpuDevice} onChange={(e) => {
-                  const val = e.target.value;
-                  handleChange('gpuDevice', val);
-                  const tp = String(val ? val.split(',').length : 1);
-                  handleGpuParam('tensorParallel', tp);
-                }}>
-                  <option value="">自动</option>
-                  <option value="0">GPU 0（单卡）</option>
-                  <option value="1">GPU 1（单卡）</option>
-                  <option value="2">GPU 2（单卡）</option>
-                  <option value="3">GPU 3（单卡）</option>
-                  <option value="0,1">GPU 0,1（双卡）</option>
-                  <option value="2,3">GPU 2,3（双卡）</option>
-                  <option value="0,1,2,3">GPU 0-3（四卡）</option>
-                </select>
-              </label>
-              <label>端口<input value={gpuParams.port} onChange={(e) => handleGpuParam('port', e.target.value)} /></label>
-              <label>张量并行
-                <span className={styles.fieldHint}>由 GPU 设备自动决定</span>
-                <select value={gpuParams.tensorParallel} onChange={(e) => handleGpuParam('tensorParallel', e.target.value)}>
-                  <option value="1">1（单卡）</option>
-                  <option value="2">2（双卡）</option>
-                  <option value="4">4（四卡）</option>
-                </select>
-              </label>
-              <label>最大上下文<input value={gpuParams.maxModelLen} onChange={(e) => handleGpuParam('maxModelLen', e.target.value)} /></label>
-              <label>显存利用率
-                <select value={gpuParams.gpuMemUtil} onChange={(e) => handleGpuParam('gpuMemUtil', e.target.value)}>
-                  <option value="0.80">80%</option><option value="0.85">85%</option>
-                  <option value="0.90">90%（推荐）</option><option value="0.95">95%</option><option value="0.97">97%</option>
-                </select>
-              </label>
-              <label>精度
-                <select value={gpuParams.dtype} onChange={(e) => handleGpuParam('dtype', e.target.value)}>
-                  <option value="auto">自动</option><option value="half">half (fp16)</option><option value="bfloat16">bfloat16</option>
-                </select>
-              </label>
-              <label>量化
-                <select value={gpuParams.quantization} onChange={(e) => handleGpuParam('quantization', e.target.value)}>
-                  <option value="">无</option><option value="awq">AWQ</option><option value="gptq">GPTQ</option><option value="squeezellm">SqueezeLLM</option>
-                </select>
-              </label>
-              <label>额外参数<input value={gpuParams.extraArgs} onChange={(e) => handleGpuParam('extraArgs', e.target.value)} placeholder="--enforce-eager" /></label>
-              <div style={{ gridColumn: '1 / -1' }}>
-                <button className={styles.btnPrimary} onClick={generateCommand} type="button">生成启动命令</button>
-              </div>
+        </div>
+
+        {/* Endpoint + test */}
+        <div className={styles.formRow2}>
+          <label>
+            端点
+            <input value={endpoint} placeholder="http://localhost:8001"
+              onChange={(e) => { setEndpoint(e.target.value); setEndpointManual(true); }} />
+          </label>
+          <label>
+            连接测试
+            <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'center' }}>
+              <button className={styles.btnDefault} onClick={handleTestConnection} disabled={testing} type="button">
+                {testing ? '测试中...' : '测试连接'}
+              </button>
+              {testResult && (
+                <span style={{ fontSize: 'var(--font-size-xs)', color: testResult.ok ? '#52c41a' : 'var(--color-danger)' }}>
+                  {testResult.msg}
+                </span>
+              )}
             </div>
-          ) : null}
+          </label>
         </div>
 
         <label>
-          端点
-          <input value={form.endpoint} onChange={(e) => handleChange('endpoint', e.target.value)} placeholder="http://localhost:8001" />
-        </label>
-        <label>
           启动命令
-          <textarea value={form.execCommand} onChange={(e) => handleChange('execCommand', e.target.value)} rows={3}
-            placeholder="从 GPU 参数自动生成，或手动输入" />
+          <span className={styles.fieldHint}>修改 GPU 参数时自动更新，也可手动编辑</span>
+          <textarea value={execCommand} onChange={(e) => setExecCommand(e.target.value)} rows={3} />
         </label>
         <label>
           描述
-          <textarea value={form.description} onChange={(e) => handleChange('description', e.target.value)} rows={2} />
+          <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} />
         </label>
         <div className={styles.formActions}>
           <button className={styles.btnDefault} onClick={onClose}>取消</button>
-          <button className={styles.btnPrimary} onClick={() => {
-            const data: Record<string, unknown> = { ...form };
-            if (form.gpuDevice) {
-              data.extraEnv = { CUDA_VISIBLE_DEVICES: form.gpuDevice };
-            }
-            onSave(data);
-          }}>保存</button>
+          <button className={styles.btnPrimary} onClick={handleSubmit} disabled={!name.trim()}>保存</button>
         </div>
       </div>
     </Modal>
   );
-}
-
-function parsePort(endpoint: string): string {
-  try {
-    return new URL(endpoint).port || '8001';
-  } catch {
-    return '8001';
-  }
 }

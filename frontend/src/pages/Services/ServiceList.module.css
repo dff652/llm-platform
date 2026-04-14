@@ -126,6 +126,12 @@
   gap: var(--space-3);
 }
 
+.formRow2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
 .form label {
   display: flex;
   flex-direction: column;
