@@ -25,22 +25,16 @@ interface ConfigGroup {
   items: ConfigItem[];
 }
 
-const RATE_LIMIT_DEFAULTS: Record<string, string> = {
+const PRESET_DEFAULTS: Record<string, string> = {
   rate_limit_per_minute: '10',
   rate_limit_per_hour: '100',
   rate_limit_per_day: '500',
 };
 
-const RATE_LIMIT_UNLIMITED: Record<string, string> = {
+const PRESET_UNLIMITED: Record<string, string> = {
   rate_limit_per_minute: '-1',
   rate_limit_per_hour: '-1',
   rate_limit_per_day: '-1',
-};
-
-const CONCURRENCY_DEFAULTS: Record<string, string> = {
-  max_gpu_concurrency: '4',
-  max_cpu_concurrency: '8',
-  gpu_sync_concurrency: '4',
 };
 
 const CONFIG_GROUPS: ConfigGroup[] = [
@@ -52,24 +46,6 @@ const CONFIG_GROUPS: ConfigGroup[] = [
       { key: 'rate_limit_per_minute', label: '每分钟上限', suffix: '次/分钟', hint: '默认 -1 不限制，推荐值 10，0 禁止' },
       { key: 'rate_limit_per_hour', label: '每小时上限', suffix: '次/小时', hint: '默认 -1 不限制，推荐值 100，0 禁止' },
       { key: 'rate_limit_per_day', label: '每日上限', suffix: '次/天', hint: '默认 -1 不限制，推荐值 500，0 禁止' },
-    ],
-  },
-  {
-    title: '结果清理',
-    description: '自动清理过期的推理结果文件和索引记录',
-    items: [
-      { key: 'cleanup_enabled', label: '启用自动清理', type: 'toggle' },
-      { key: 'cleanup_retention_days', label: '保留天数', suffix: '天' },
-    ],
-  },
-  {
-    title: '并发限制',
-    description: '推理任务最大同时执行数（-1 = 不限制，0 = 暂停所有任务，超过上限自动排队）',
-    presets: true,
-    items: [
-      { key: 'max_gpu_concurrency', label: 'GPU 任务并发', suffix: '个任务', hint: '同时推理的 GPU 任务数，多卡部署时建议等于引擎数量（如 4 卡设 4）' },
-      { key: 'max_cpu_concurrency', label: 'CPU 任务并发', suffix: '个任务', hint: 'CPU 算法同时执行数，推荐 8' },
-      { key: 'gpu_sync_concurrency', label: '外部 API GPU 并发（同步模式）', suffix: '个请求', hint: '仅控制同步调用，异步调用受 GPU 任务并发控制。设 1 可确保结果一致' },
     ],
   },
   {
@@ -159,7 +135,7 @@ export default function Settings() {
                 <button
                   className={styles.presetBtn}
                   onClick={() => {
-                    const defaults = group.title === 'API 限流' ? RATE_LIMIT_DEFAULTS : CONCURRENCY_DEFAULTS;
+                    const defaults = PRESET_DEFAULTS;
                     setConfigs((prev) => ({ ...prev, ...defaults }));
                   }}
                 >
@@ -168,8 +144,7 @@ export default function Settings() {
                 <button
                   className={styles.presetBtn}
                   onClick={() => {
-                    const unlimited = group.title === 'API 限流' ? RATE_LIMIT_UNLIMITED
-                      : { max_gpu_concurrency: '-1', max_cpu_concurrency: '-1', gpu_sync_concurrency: '-1' };
+                    const unlimited = PRESET_UNLIMITED;
                     setConfigs((prev) => ({ ...prev, ...unlimited }));
                   }}
                 >

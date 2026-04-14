@@ -94,17 +94,16 @@ const icons = {
 const NAV_ENTRIES: NavEntry[] = [
   { path: '/dashboard', label: '总览', icon: icons.dashboard },
   { path: '/chat', label: 'Chat', icon: icons.chat },
-  { path: '/services', label: '模型服务', icon: icons.inference },
-  { path: '/api-docs', label: 'API 文档', icon: icons.docs },
   {
     key: 'models',
-    label: '模型中心',
+    label: '模型管理',
     icon: icons.model,
     children: [
-      { path: '/models', label: '模型管理', end: true },
+      { path: '/services', label: '模型服务' },
       { path: '/model-store', label: '模型商店' },
     ],
   },
+  { path: '/api-docs', label: 'API 文档', icon: icons.docs },
   {
     key: 'system',
     label: '系统管理',
