@@ -17,26 +17,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 
-# ts_quality wheel (pre-built)
-COPY docker/ts_quality-*.whl /tmp/
-RUN pip install --no-cache-dir /tmp/ts_quality-*.whl -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com && rm -f /tmp/ts_quality-*.whl
-
 # PostgreSQL async/sync drivers
-RUN pip install --no-cache-dir asyncpg psycopg2-binary -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
+RUN pip install --no-cache-dir asyncpg psycopg2-binary aiosqlite sse-starlette -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com
 
 # Application code
 COPY backend/app ./app
 COPY backend/alembic ./alembic
 COPY backend/alembic.ini .
 COPY backend/scripts ./scripts
-COPY CHANGELOG.md .
 
-RUN mkdir -p /app/data/inference /app/data/uploads /app/data/predict \
-             /app/data/process_logs /app/logs
+RUN mkdir -p /app/data /app/logs /app/logs/engines
 
 ARG BUILD_TIME=""
 ENV WORKERS=4
 ENV BUILD_TIME=${BUILD_TIME}
-EXPOSE 8100
+EXPOSE 8200
 
-CMD uvicorn app.main:app --host 0.0.0.0 --port 8100 --workers $WORKERS
+CMD uvicorn app.main:app --host 0.0.0.0 --port 8200 --workers $WORKERS

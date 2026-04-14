@@ -20,7 +20,7 @@ services:
       network: host
     container_name: llm-platform-backend
     ports:
-      - "${API_PORT:-8100}:8100"
+      - "${API_PORT:-8200}:8200"
     volumes:
       - ./data:/app/data
       - ./logs:/app/logs
