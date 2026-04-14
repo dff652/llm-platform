@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, Float, Integer, String, Text
+from sqlalchemy import BigInteger, DateTime, Float, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -20,8 +20,8 @@ class ModelDownload(Base):
         String(20), nullable=False, default="pending"
     )  # pending | downloading | completed | failed | cancelled
     progress: Mapped[float] = mapped_column(Float, default=0.0)
-    total_size: Mapped[int] = mapped_column(Integer, default=0)  # bytes
-    downloaded_size: Mapped[int] = mapped_column(Integer, default=0)
+    total_size: Mapped[int] = mapped_column(BigInteger, default=0)  # bytes (supports >2GB models)
+    downloaded_size: Mapped[int] = mapped_column(BigInteger, default=0)
     download_path: Mapped[str | None] = mapped_column(String(500))
     error_message: Mapped[str | None] = mapped_column(Text)
     celery_task_id: Mapped[str | None] = mapped_column(String(100))

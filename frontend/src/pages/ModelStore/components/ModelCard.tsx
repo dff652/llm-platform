@@ -14,6 +14,15 @@ function formatCount(n: number): string {
   return String(n);
 }
 
+function formatDate(iso: string): string {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' });
+  } catch {
+    return '';
+  }
+}
+
 interface Props {
   model: RemoteModel;
   download?: ModelDownload;
@@ -93,10 +102,15 @@ export default function ModelCard({ model, download, vramEstimate, compareSelect
         )}
       </div>
       <div className={styles.cardFooter}>
-        <span className={styles.size}>
-          {formatSize(model.storageSize)}
-          {vramEstimate && <span className={styles.vram}> · 显存(预估) {vramEstimate}</span>}
-        </span>
+        <div className={styles.footerLeft}>
+          <span className={styles.size}>
+            {formatSize(model.storageSize)}
+            {vramEstimate && <span className={styles.vram}> · 显存 {vramEstimate}</span>}
+          </span>
+          {model.lastUpdated && (
+            <span className={styles.updateTime}>{formatDate(model.lastUpdated)}</span>
+          )}
+        </div>
         <button className={btnClass} onClick={handleDownload}>
           {btnText}
         </button>

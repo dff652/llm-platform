@@ -117,9 +117,20 @@
   gap: var(--space-1);
 }
 
+.footerLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.updateTime {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-secondary);
+}
+
 .cardFooter {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   margin-top: auto;
   padding-top: var(--space-3);
