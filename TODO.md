@@ -1,45 +1,46 @@
 # LLM Platform — TODO
 
-> Updated: 2026-04-14
+> Updated: 2026-04-15
 
-## Completed
+## Completed (25 commits)
 
 - [x] OpenAI 兼容 API（/v1/chat/completions, /v1/completions, /v1/models）
 - [x] API Key + JWT 双认证 + 限流
 - [x] 多模型路由（model name → vLLM endpoint）+ round-robin 负载均衡
 - [x] 健康检查缓存（30s TTL，并发检测，跳过不可达实例）
-- [x] 请求日志（token 用量、延迟、错误追踪）
+- [x] 请求日志（token 用量、延迟、错误追踪）+ 请求/响应体详情
 - [x] PostgreSQL 数据库（docker-compose.dev.yml，端口 5433）
+- [x] Alembic 数据库迁移（3 个迁移脚本，正式管理 schema 变更）
 - [x] 流式响应（SSE 原生转发 + 非 SSE 后端自动包装）
 - [x] ensure_running（请求到达时自动拉起 vLLM 进程）
 - [x] Dashboard（统计卡片 + GPU 监控置顶 + 3 个 ECharts 图表 + 最近请求）
 - [x] Chat UI（多轮对话、流式显示、参数面板、模型选择）
-- [x] 模型服务（卡片布局、GPU 参数面板、启停、systemd 检测、日志、健康圆点）
+- [x] 模型服务（卡片布局、GPU 参数面板、启停、systemd 检测、日志、健康圆点、上下文长度）
 - [x] 服务表单交互联动（选模型自动填路径、改参数实时更新命令、连接测试）
 - [x] 模型商店（ModelScope 搜索/下载/发布 + "已发布"标签页）
-- [x] API 调用监控（分页、5 个筛选器、详情展开）
+- [x] API 调用监控（分页、5 个筛选器、详情展开、请求/响应体查看）
 - [x] API 接入文档页（/api-docs，代码示例、认证、限流说明）
+- [x] Token 用量配额（按 API Key 限额，token_quota / token_used）
 - [x] 全站中文化（7 页面 ~134 字符串）
 - [x] 进程管理（Port-as-Truth + systemd 自动检测）
 - [x] /simplify 代码审查（连接池单例、FD 泄漏修复、索引、工具函数提取）
+- [x] 项目文档（README + CLAUDE.md + TODO.md + docs/design-decisions.md 11 个决策）
 
-## Planned
+## Next — 待执行
 
 ### P1 — 短期
 
-| 项目 | 说明 |
-|------|------|
-| **端到端浏览器验收** | 逐页面点验，修交互细节和 Bug |
-| **Alembic 数据库迁移** | 生成正式迁移脚本（当前 DEBUG=true auto-create） |
-| **Docker 生产部署** | 实测构建镜像 + docker-compose up + nginx 代理 |
+| 项目 | 说明 | 状态 |
+|------|------|------|
+| **端到端浏览器验收** | 逐页面点验，修交互细节和 Bug | 待开始 |
+| **Docker 生产部署** | 实测构建镜像 + docker-compose up + nginx 代理 | 待开始 |
+| **API Key 管理页增强** | 显示 token_used/token_quota，支持配额编辑 | 待开始 |
 
 ### P2 — 中期
 
 | 项目 | 说明 |
 |------|------|
-| **用量配额** | 按 API Key 设置 token 用量上限 |
-| **请求/响应详情** | 可选记录完整请求体（调试用） |
-| **模型加载进度** | 卡片显示启动进度百分比 |
+| **模型加载进度** | 启动中时卡片显示进度（端口轮询） |
 | **请求队列** | 高并发时排队 + 超时控制 |
 | **Webhook 回调** | 请求完成后通知外部系统 |
 
@@ -52,3 +53,17 @@
 | **模型性能基准** | 自动 benchmark，记录推理速度 |
 | **A/B 测试** | 同请求发到多个模型，对比输出 |
 | **微调集成** | 平台内发起 LoRA 微调任务 |
+
+## Development Timeline
+
+| 日期 | 里程碑 |
+|------|--------|
+| 2026-04-13 | 项目初始化，Fork ts-platform，OpenAI API + 认证 + 模型路由 |
+| 2026-04-13 | PostgreSQL 切换，流式响应验证，ChatTS 端到端测试通过 |
+| 2026-04-14 | Dashboard 图表，API 文档页，Chat UI，进程管理 |
+| 2026-04-14 | 全站中文化，GPU 监控增强，API 调用监控页 |
+| 2026-04-14 | 模型服务 ↔ 注册联动，round-robin 负载均衡 |
+| 2026-04-14 | 服务表单交互重写（参考 ts-platform ServiceForm） |
+| 2026-04-14 | systemd 服务检测，模型注册合并到商店，卡片布局 |
+| 2026-04-14 | 设计决策文档（11 项），项目文档全面更新 |
+| 2026-04-14 | Alembic 迁移，Token 配额，请求/响应详情日志，上下文长度显示 |
