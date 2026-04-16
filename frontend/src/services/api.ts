@@ -352,56 +352,6 @@ export function deleteModel(modelId: number, deleteFiles: boolean = false) {
   return api.delete<void>(`/models/${modelId}?deleteFiles=${deleteFiles}`);
 }
 
-// ─── Data Sources ────────────────────────────────────────
-
-export interface DataSourceItem {
-  id: number;
-  name: string;
-  type: string;
-  connectionConfig: Record<string, unknown>;
-  status: string;
-  lastCheckAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface DataSourceTestResult {
-  success: boolean;
-  message: string;
-  latencyMs: number;
-}
-
-export function listDataSources(params?: { page?: number; pageSize?: number }) {
-  return api.get<{ total: number; page: number; pageSize: number; items: DataSourceItem[] }>(
-    '/data-sources', params,
-  );
-}
-
-export function createDataSource(data: {
-  name: string;
-  type: string;
-  connectionConfig: Record<string, unknown>;
-}) {
-  return api.post<DataSourceItem>('/data-sources', data);
-}
-
-export function updateDataSource(id: number, data: Partial<{
-  name: string;
-  type: string;
-  connectionConfig: Record<string, unknown>;
-  status: string;
-}>) {
-  return api.put<DataSourceItem>(`/data-sources/${id}`, data);
-}
-
-export function deleteDataSource(id: number) {
-  return api.delete(`/data-sources/${id}`);
-}
-
-export function testDataSource(id: number) {
-  return api.post<DataSourceTestResult>(`/data-sources/${id}/test`);
-}
-
 // ─── System Config ────────────────────────────────────────
 
 export interface SystemConfigItem {
@@ -434,82 +384,11 @@ export interface PerfStats {
   hours: number;
   total: number;
   byStatus: Record<string, number>;
-  stats: { avg?: number; p50?: number; p95?: number; min?: number; max?: number };
-  byAlgorithm: Record<string, { count: number; avg: number; p95: number }>;
-  byHour: Array<{ hour: string; count: number; success: number; failed: number; avgDuration: number }>;
-  recent: Array<{ id: string; algorithm: string; status: string; duration: number | null; source: string; completedAt: string | null }>;
+  byModel: Record<string, number>;
+  stats: { avgMs?: number; p50Ms?: number; p95Ms?: number; minMs?: number; maxMs?: number };
 }
 
 export function getPerfStats(hours?: number) {
   return api.get<PerfStats>('/system-logs/perf-stats', hours ? { hours } : {});
 }
 
-export interface ConcurrencyStatus {
-  gpu: { running: number; limit: number; queued: number };
-  cpu: { running: number; limit: number; queued: number };
-}
-
-export function getConcurrencyStatus() {
-  return api.get<ConcurrencyStatus>('/dashboard/concurrency-status');
-}
-
-export interface BrowseNode {
-  path: string;
-  name?: string;
-  type: 'storage_groups' | 'group' | 'device' | 'empty';
-  children?: BrowseNode[];
-  measurements?: string[];
-}
-
-export function browseDataSource(id: number, path?: string) {
-  return api.get<BrowseNode>(`/data-sources/${id}/browse`, path ? { path } : {});
-}
-
-export interface PointInfo {
-  measurement: string;
-  device: string;
-  dataType?: string;
-  count?: number;
-  minTime?: string;
-  maxTime?: string;
-}
-
-export function getPointInfo(dsId: number, device: string, measurement: string) {
-  return api.get<PointInfo>(`/data-sources/${dsId}/point-info`, { device, measurement });
-}
-
-export interface PreviewData {
-  times: string[];
-  values: number[];
-  count: number;
-  measurement: string;
-}
-
-export function importConfigAsDatasets(dsId: number, data: {
-  namePrefix?: string;
-  type?: string;
-  config: Record<string, { columns?: string[]; st?: string; et?: string }>;
-}) {
-  return api.post<{ created: number; skipped: number; versions: Array<{ versionId: number; name: string; device: string; itemCount: number }> }>(
-    `/data-sources/${dsId}/import-config`, data,
-  );
-}
-
-export function createDatasetFromIoTDB(dsId: number, data: {
-  name: string;
-  type: string;
-  device: string;
-  measurements: string[];
-  startTime?: string;
-  endTime?: string;
-}) {
-  return api.post<{ versionId: number; name: string; itemCount: number }>(`/data-sources/${dsId}/create-dataset`, data);
-}
-
-export function previewPointData(dsId: number, device: string, measurement: string, start?: string, end?: string, n?: number) {
-  const params: Record<string, string | number> = { device, measurement };
-  if (start) params.start = start;
-  if (end) params.end = end;
-  if (n) params.n = n;
-  return api.get<PreviewData>(`/data-sources/${dsId}/preview`, params);
-}

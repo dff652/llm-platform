@@ -1,6 +1,5 @@
 /**
  * 统一 SVG 图标组件（Lucide 风格）
- * 从 ta 项目提取 ModelCenter 需要的图标子集
  */
 
 import React from 'react';

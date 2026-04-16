@@ -24,6 +24,19 @@ _health_cache: dict[str, tuple[bool, float]] = {}
 _HEALTH_TTL = 30  # seconds
 
 
+_health_client: httpx.AsyncClient | None = None
+
+
+def _get_health_client() -> httpx.AsyncClient:
+    global _health_client
+    if _health_client is None or _health_client.is_closed:
+        _health_client = httpx.AsyncClient(
+            timeout=httpx.Timeout(3, connect=2),
+            limits=httpx.Limits(max_connections=10, max_keepalive_connections=5),
+        )
+    return _health_client
+
+
 async def _check_endpoint_health(endpoint: str) -> bool:
     """Check if a vLLM endpoint is reachable (GET /v1/models)."""
     now = time.monotonic()
@@ -33,9 +46,9 @@ async def _check_endpoint_health(endpoint: str) -> bool:
 
     healthy = False
     try:
-        async with httpx.AsyncClient(timeout=httpx.Timeout(3, connect=2)) as client:
-            resp = await client.get(f"{endpoint}/v1/models")
-            healthy = resp.status_code == 200
+        client = _get_health_client()
+        resp = await client.get(f"{endpoint}/v1/models")
+        healthy = resp.status_code == 200
     except Exception:
         pass
 
@@ -138,16 +151,18 @@ async def ensure_running(service_id: int, db: AsyncSession) -> tuple[bool, str]:
 
     try:
         log_fh = open(log_file, "a")
-        proc = subprocess.Popen(
-            svc.exec_command,
-            shell=True,
-            stdout=log_fh,
-            stderr=subprocess.STDOUT,
-            cwd=svc.work_dir or None,
-            env=env,
-            start_new_session=True,
-        )
-        log_fh.close()
+        try:
+            proc = subprocess.Popen(
+                svc.exec_command,
+                shell=True,
+                stdout=log_fh,
+                stderr=subprocess.STDOUT,
+                cwd=svc.work_dir or None,
+                env=env,
+                start_new_session=True,
+            )
+        finally:
+            log_fh.close()
     except Exception as e:
         return False, f"Failed to start: {e}"
 

@@ -3,6 +3,7 @@
 These endpoints proxy requests to vLLM backends, authenticated via API Key or JWT.
 """
 
+import json
 import logging
 import time
 import uuid
@@ -361,7 +362,7 @@ async def _stream_proxy(
                     async for chunk in resp.aiter_bytes():
                         error_body += chunk
                     error_msg = error_body.decode("utf-8", errors="replace")[:500]
-                    yield f'data: {{"error": "{error_msg}"}}\n\n'
+                    yield f'data: {{"error": {json.dumps(error_msg)}}}\n\n'
                     yield "data: [DONE]\n\n"
                     return
 

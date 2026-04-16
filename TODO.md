@@ -25,6 +25,9 @@
 - [x] 进程管理（Port-as-Truth + systemd 自动检测）
 - [x] /simplify 代码审查（连接池单例、FD 泄漏修复、索引、工具函数提取）
 - [x] 项目文档（README + CLAUDE.md + TODO.md + docs/design-decisions.md 11 个决策）
+- [x] 清理 ts-platform 残留代码（DataSource/IoTDB/ModelCenter 死代码 -594 行）
+- [x] 修复 httpx 健康检查单例、log_fh 泄漏、流式 JSON 转义
+- [x] 修正 PerfStats 前后端类型不匹配（byAlgorithm → byModel）
 
 ## Next — 待执行
 
@@ -67,3 +70,4 @@
 | 2026-04-14 | systemd 服务检测，模型注册合并到商店，卡片布局 |
 | 2026-04-14 | 设计决策文档（11 项），项目文档全面更新 |
 | 2026-04-14 | Alembic 迁移，Token 配额，请求/响应详情日志，上下文长度显示 |
+| 2026-04-15 | 代码审查：清理 ts-platform 残留，修复 httpx/fd/JSON 三个 bug，PerfStats 类型对齐 |

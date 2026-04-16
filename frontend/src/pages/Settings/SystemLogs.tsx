@@ -2,16 +2,9 @@
  * 系统日志 + 性能监控页面
  */
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import ReactEChartsCore from 'echarts-for-react/lib/core';
-import * as echarts from 'echarts/core';
-import { LineChart, BarChart } from 'echarts/charts';
-import { GridComponent, TooltipComponent, LegendComponent } from 'echarts/components';
-import { CanvasRenderer } from 'echarts/renderers';
 import { getSystemLogs, getLogSources, clearSystemLog, getPerfStats, ApiError, type PerfStats } from '../../services/api';
 import { useUiStore } from '../../stores/uiStore';
 import styles from './SystemLogs.module.css';
-
-echarts.use([LineChart, BarChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
 
 const LEVELS = [
   { value: '', label: '全部' },
@@ -23,9 +16,8 @@ const LEVELS = [
 const PRESETS = [
   { label: '推理请求', keyword: 'inference_request|inference_completed' },
   { label: '限流', keyword: 'rate_limit' },
-  { label: '并发', keyword: 'concurrency|queued|dispatched' },
+  { label: '路由', keyword: 'round_robin|resolve|no_route' },
   { label: '错误', keyword: 'error|failed|exception' },
-  { label: 'IoTDB', keyword: 'iotdb' },
 ];
 
 function colorize(line: string): string {
@@ -183,10 +175,10 @@ export default function SystemLogs() {
             <>
               <div className={styles.perfCards}>
                 {[
-                  { label: '任务总数', value: perf.total },
-                  { label: '平均耗时', value: perf.stats.avg ? `${perf.stats.avg}s` : '—' },
-                  { label: 'P95 耗时', value: perf.stats.p95 ? `${perf.stats.p95}s` : '—' },
-                  { label: '成功率', value: perf.total > 0 ? `${Math.round(((perf.byStatus.completed || 0) + (perf.byStatus.partial_success || 0)) / perf.total * 100)}%` : '—' },
+                  { label: '请求总数', value: perf.total },
+                  { label: '平均延迟', value: perf.stats.avgMs ? `${perf.stats.avgMs}ms` : '—' },
+                  { label: 'P95 延迟', value: perf.stats.p95Ms ? `${perf.stats.p95Ms}ms` : '—' },
+                  { label: '成功率', value: perf.total > 0 ? `${Math.round((perf.byStatus.success || 0) / perf.total * 100)}%` : '—' },
                 ].map((c) => (
                   <div key={c.label} className={styles.perfCard}>
                     <div className={styles.perfCardLabel}>{c.label}</div>
@@ -195,57 +187,28 @@ export default function SystemLogs() {
                 ))}
               </div>
 
-              {Object.keys(perf.byAlgorithm).length > 0 && (
+              {perf.byModel && Object.keys(perf.byModel).length > 0 && (
                 <div className={styles.perfSection}>
-                  <h4 className={styles.perfSectionTitle}>按算法</h4>
+                  <h4 className={styles.perfSectionTitle}>按模型</h4>
                   <table className={styles.perfTable}>
-                    <thead><tr><th>算法</th><th>次数</th><th>平均耗时</th><th>P95</th></tr></thead>
+                    <thead><tr><th>模型</th><th>请求数</th></tr></thead>
                     <tbody>
-                      {Object.entries(perf.byAlgorithm).map(([algo, s]) => (
-                        <tr key={algo}><td>{algo}</td><td>{s.count}</td><td>{s.avg}s</td><td>{s.p95}s</td></tr>
+                      {Object.entries(perf.byModel).map(([model, count]) => (
+                        <tr key={model}><td>{model}</td><td>{count}</td></tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               )}
 
-              {perf.byHour.length > 1 && (
+              {perf.byStatus && Object.keys(perf.byStatus).length > 0 && (
                 <div className={styles.perfSection}>
-                  <h4 className={styles.perfSectionTitle}>吞吐趋势</h4>
-                  <ReactEChartsCore echarts={echarts} option={{
-                    animation: false,
-                    grid: { top: 30, right: 50, bottom: 24, left: 40 },
-                    tooltip: { trigger: 'axis' },
-                    legend: { top: 0, textStyle: { fontSize: 11 } },
-                    xAxis: { type: 'category', data: perf.byHour.map((h) => h.hour.slice(11, 16)), axisLabel: { fontSize: 10 } },
-                    yAxis: [
-                      { type: 'value', name: '次数', axisLabel: { fontSize: 10 }, minInterval: 1 },
-                      { type: 'value', name: '秒', axisLabel: { fontSize: 10 } },
-                    ],
-                    series: [
-                      { name: '成功', type: 'bar', stack: 'c', data: perf.byHour.map((h) => h.success), itemStyle: { color: '#91cc75' } },
-                      { name: '失败', type: 'bar', stack: 'c', data: perf.byHour.map((h) => h.failed), itemStyle: { color: '#ee6666' } },
-                      { name: '平均耗时', type: 'line', yAxisIndex: 1, data: perf.byHour.map((h) => h.avgDuration), smooth: true, showSymbol: false, lineStyle: { width: 2 }, itemStyle: { color: '#5470c6' } },
-                    ],
-                  }} style={{ height: 250 }} notMerge />
-                </div>
-              )}
-
-              {perf.recent.length > 0 && (
-                <div className={styles.perfSection}>
-                  <h4 className={styles.perfSectionTitle}>最近任务</h4>
+                  <h4 className={styles.perfSectionTitle}>按状态</h4>
                   <table className={styles.perfTable}>
-                    <thead><tr><th>ID</th><th>算法</th><th>状态</th><th>耗时</th><th>来源</th><th>完成时间</th></tr></thead>
+                    <thead><tr><th>状态</th><th>数量</th></tr></thead>
                     <tbody>
-                      {perf.recent.map((t) => (
-                        <tr key={t.id}>
-                          <td style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-xs)' }}>{t.id}</td>
-                          <td>{t.algorithm}</td>
-                          <td>{t.status}</td>
-                          <td>{t.duration != null ? `${t.duration}s` : '—'}</td>
-                          <td>{t.source}</td>
-                          <td>{t.completedAt ? new Date(t.completedAt).toLocaleString('zh-CN') : '—'}</td>
-                        </tr>
+                      {Object.entries(perf.byStatus).map(([status, count]) => (
+                        <tr key={status}><td>{status}</td><td>{count}</td></tr>
                       ))}
                     </tbody>
                   </table>
