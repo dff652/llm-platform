@@ -19,10 +19,10 @@
 
 ### 环境要求
 
-- Python 3.10+
+- Python 3.10+（开发实测 3.12）
 - Node.js 18+
-- PostgreSQL（或 SQLite 开发模式）
-- Redis
+- PostgreSQL — 仅 prod 必需；dev 可走 SQLite
+- Redis — 用于限流和模型下载（Celery）；缺失时降级运行（前端核心功能不受影响）
 
 ### 1. 安装
 
@@ -33,10 +33,10 @@ cd llm-platform
 # 前端依赖
 cd frontend && npm install && cd ..
 
-# 后端依赖（如缺失）
-pip install fastapi uvicorn sqlalchemy asyncpg psycopg2-binary \
-    redis celery httpx pydantic-settings structlog bcrypt pyjwt \
-    aiosqlite sse-starlette
+# 后端依赖（推荐 venv）
+cd backend
+python3 -m venv .venv
+.venv/bin/pip install -r requirements.txt
 ```
 
 ### 2. 配置
@@ -159,7 +159,8 @@ llm-platform/
 │       ├── services/api.ts      ← API 客户端
 │       └── types/index.ts       ← TypeScript 类型
 ├── docs/
-│   └── design-decisions.md      ← 设计决策记录
+│   ├── design-decisions.md          ← 设计决策记录（DD-001 ~ DD-011）
+│   └── engineering-principles.md    ← 7 条工程原则完整版（CLAUDE.md 顶部精炼版的细节）
 ├── TODO.md                      ← 待办事项和规划
 └── docker-compose.dev.yml       ← 开发用 PostgreSQL
 ```

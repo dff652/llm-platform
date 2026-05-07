@@ -76,5 +76,6 @@ try { ... } catch (err) {
 ## 关键设计模式
 
 - 模型服务表单：选模型自动填路径、改 GPU 参数实时更新 exec_command
-- 卡片布局：健康圆点（绿/蓝脉冲/红/灰）+ GPU Badge + 启停按钮
+- 卡片布局：健康圆点 5 态（绿 healthy / 蓝脉冲 starting / 黄脉冲 checking / 红 offline / 灰 disabled）+ GPU Badge + 启停按钮
+- 错误处理：`api.ts` 调用点的 `.catch` 必须显式处理（toast 或内联），不允许 `.catch(() => {})` silent swallow；有意 fallback 必须加 `// fallback by design:` 注释。详见 `docs/engineering-principles.md` 原则 2
 - 全站中文
