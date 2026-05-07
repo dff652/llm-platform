@@ -58,7 +58,12 @@ export default function SystemLogs() {
     return () => clearTimeout(timer);
   }, [keyword]);
 
-  useEffect(() => { getLogSources().then(setSources).catch(() => {}); }, []);
+  useEffect(() => {
+    getLogSources().then(setSources).catch((err) => {
+      const detail = err instanceof ApiError ? err.detail : '日志源加载失败';
+      showToast({ type: 'error', message: detail });
+    });
+  }, [showToast]);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);

@@ -109,20 +109,29 @@ export default function ModelStore() {
 
   // Initial load
   const fetchPublished = useCallback(async () => {
-    try {
-      const [mRes, sRes] = await Promise.all([
-        api.get<{ items: ModelEntity[] }>('/models', { pageSize: 100 }),
-        api.get<LLMService[]>('/services'),
-      ]);
-      setPublishedModels(mRes.items || []);
-      setPublishedServices(sRes);
-    } catch { /* ignore */ }
-  }, []);
+    const [mRes, sRes] = await Promise.allSettled([
+      api.get<{ items: ModelEntity[] }>('/models', { pageSize: 100 }),
+      api.get<LLMService[]>('/services'),
+    ]);
+    if (mRes.status === 'fulfilled') {
+      setPublishedModels(mRes.value.items || []);
+    } else {
+      const detail = mRes.reason instanceof ApiError ? mRes.reason.detail : '已发布模型加载失败';
+      showToast({ type: 'error', message: detail });
+    }
+    if (sRes.status === 'fulfilled') {
+      setPublishedServices(sRes.value);
+    } else {
+      const detail = sRes.reason instanceof ApiError ? sRes.reason.detail : '关联服务加载失败';
+      showToast({ type: 'error', message: detail });
+    }
+  }, [showToast]);
 
   useEffect(() => {
     fetchModels();
     fetchDownloads();
     fetchPublished();
+    // fallback by design: 磁盘信息只用于头部展示，缺失不阻塞浏览/下载
     checkDiskSpace().then(setDiskInfo).catch(() => {});
   }, [fetchModels, fetchDownloads, fetchPublished]);
 
@@ -203,7 +212,7 @@ export default function ModelStore() {
           showToast({ message: `磁盘空间不足: 剩余 ${freeGB}GB，需要 ${needGB}GB`, type: 'error' });
           return;
         }
-      } catch { /* proceed */ }
+      } catch { /* fallback by design: 磁盘预检失败不拦截下载，后端会再校验 */ }
     }
     try {
       await startDownload(model);
@@ -278,7 +287,7 @@ export default function ModelStore() {
       try {
         const deps = await getDownloadDependencies(dl.id);
         setDeleteDeps({ services: deps.services });
-      } catch { /* ignore, show dialog anyway */ }
+      } catch { /* fallback by design: 依赖查询失败仍展示删除对话框，由用户决策 */ }
     }
   };
 

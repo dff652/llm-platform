@@ -31,13 +31,19 @@ export default function Chat() {
     const token = localStorage.getItem('token');
     if (!token) return;
     fetch('/v1/models', { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json())
+      .then(async (r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data) => {
         const list: ModelOption[] = (data.data || []).map((m: { id: string }) => ({ id: m.id }));
         setModels(list);
         if (list.length > 0 && !selectedModel) setSelectedModel(list[0]!.id);
       })
-      .catch(() => {});
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : '请求失败';
+        showToast({ type: 'error', message: `模型列表加载失败：${msg}` });
+      });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-scroll to bottom

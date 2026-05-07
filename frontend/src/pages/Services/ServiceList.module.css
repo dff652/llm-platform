@@ -36,6 +36,7 @@
 }
 .healthDot[data-state="healthy"] { background: #52c41a; box-shadow: 0 0 6px rgba(82,196,26,0.4); }
 .healthDot[data-state="starting"] { background: #1890ff; animation: pulse 1.5s infinite; }
+.healthDot[data-state="checking"] { background: #faad14; animation: pulse 2s infinite; }
 .healthDot[data-state="offline"] { background: #ff4d4f; }
 .healthDot[data-state="disabled"] { background: var(--color-border); }
 

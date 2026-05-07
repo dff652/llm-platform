@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '../../services/api';
+import { api, ApiError } from '../../services/api';
+import { useUiStore } from '../../stores/uiStore';
 import { useSmartPoll } from '../../hooks/useSmartPoll';
 import { Badge } from '../../components/common/Badge';
 import { Pagination } from '../../components/common/Pagination';
@@ -7,6 +8,7 @@ import type { ChatLogItem, PaginatedResponse } from '../../types';
 import styles from './ApiCalls.module.css';
 
 export default function ApiCalls() {
+  const showToast = useUiStore((s) => s.showToast);
   const [items, setItems] = useState<ChatLogItem[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -29,8 +31,11 @@ export default function ApiCalls() {
   useEffect(() => {
     api.get<{ model: string; count: number }[]>('/dashboard/model-distribution')
       .then((data) => setModelOptions(data.map((d) => d.model)))
-      .catch(() => {});
-  }, []);
+      .catch((err) => {
+        const detail = err instanceof ApiError ? err.detail : '筛选下拉加载失败';
+        showToast({ type: 'error', message: detail });
+      });
+  }, [showToast]);
 
   const fetchData = useCallback(async () => {
     try {

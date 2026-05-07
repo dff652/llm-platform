@@ -54,6 +54,7 @@ export default function CompareModal({ models, downloads, onClose, onDownload }:
   useEffect(() => {
     setLoading(true);
     Promise.all(
+      // fallback by design: 单个模型详情失败渲染 null，UI 已处理空槽位
       models.map((m) =>
         getRemoteModelDetail('modelscope', m.modelId).catch(() => null),
       ),

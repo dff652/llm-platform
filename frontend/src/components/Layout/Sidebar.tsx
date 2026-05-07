@@ -128,6 +128,7 @@ export default function Sidebar() {
   const changelogHtml = useMemo(() => changelog ? marked(changelog) as string : '', [changelog]);
 
   useEffect(() => {
+    // fallback by design: build_time 仅用于版本气泡，缺失不显示版本号即可
     fetch('/api/v1/health').then(r => r.json()).then(d => {
       if (d.build_time) setBuildTime(d.build_time);
     }).catch(() => {});

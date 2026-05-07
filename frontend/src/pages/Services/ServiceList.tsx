@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { api, ApiError } from '../../services/api';
 import { useUiStore } from '../../stores/uiStore';
@@ -32,6 +32,9 @@ export default function ServiceList() {
   const [logTarget, setLogTarget] = useState<LLMService | null>(null);
   const [logContent, setLogContent] = useState('');
 
+  const lastErrorsRef = useRef<{ health: Record<number, string>; proc: Record<number, string> }>({ health: {}, proc: {} });
+  const recentStartRef = useRef<Record<number, number>>({});
+
   useEffect(() => {
     if (searchParams.get('create') === '1' && isAdmin) {
       const mid = searchParams.get('modelId');
@@ -58,17 +61,30 @@ export default function ServiceList() {
     try {
       const health = await api.get<ServiceHealth>(`/services/${id}/health`);
       setHealthMap((prev) => ({ ...prev, [id]: health }));
-    } catch {
-      setHealthMap((prev) => ({ ...prev, [id]: { healthy: false, error: '检查失败' } as ServiceHealth }));
+      delete lastErrorsRef.current.health[id];
+    } catch (err) {
+      const detail = err instanceof ApiError ? err.detail : err instanceof Error ? err.message : '未知错误';
+      setHealthMap((prev) => ({ ...prev, [id]: { healthy: false, error: detail } as ServiceHealth }));
+      if (lastErrorsRef.current.health[id] !== detail) {
+        lastErrorsRef.current.health[id] = detail;
+        showToast({ type: 'error', message: `健康检查失败：${detail}` });
+      }
     }
-  }, []);
+  }, [showToast]);
 
   const checkProcess = useCallback(async (id: number) => {
     try {
       const status = await api.get<ProcessStatus>(`/services/${id}/process`);
       setProcessMap((prev) => ({ ...prev, [id]: status }));
-    } catch { /* ignore */ }
-  }, []);
+      delete lastErrorsRef.current.proc[id];
+    } catch (err) {
+      const detail = err instanceof ApiError ? err.detail : err instanceof Error ? err.message : '未知错误';
+      if (lastErrorsRef.current.proc[id] !== detail) {
+        lastErrorsRef.current.proc[id] = detail;
+        showToast({ type: 'error', message: `进程状态查询失败：${detail}` });
+      }
+    }
+  }, [showToast]);
 
   useEffect(() => {
     services.forEach((svc) => { checkHealth(svc.id); checkProcess(svc.id); });
@@ -76,9 +92,11 @@ export default function ServiceList() {
 
   const handleStart = async (svc: LLMService) => {
     setActionLoading((prev) => ({ ...prev, [svc.id]: 'starting' }));
+    recentStartRef.current[svc.id] = Date.now();
     try {
       const res = await api.post<{ success: boolean; message: string }>(`/services/${svc.id}/start`);
       showToast({ type: res.success ? 'success' : 'error', message: res.message });
+      if (res.success) delete lastErrorsRef.current.health[svc.id];
       checkProcess(svc.id); checkHealth(svc.id);
     } catch (e) {
       showToast({ type: 'error', message: e instanceof ApiError ? e.detail : '启动失败' });
@@ -169,7 +187,22 @@ export default function ServiceList() {
             const isDisabled = svc.status !== 'enabled';
             const isHealthy = health?.healthy === true;
             const isRunning = proc?.running === true;
-            const dotState = isDisabled ? 'disabled' : isHealthy ? 'healthy' : isRunning ? 'starting' : 'offline';
+            const recentStart = recentStartRef.current[svc.id];
+            const inStartWindow = recentStart && Date.now() - recentStart < 120_000;
+            const healthChecked = health !== undefined;
+            const procChecked = proc !== undefined;
+            // 5 values: disabled / healthy / starting / checking / offline
+            // - starting: 本地刚 start (action) 或 120s 启动窗口内 + 进程在跑但还没 healthy
+            // - checking: health/process 都还没回填，避免冒充 offline
+            const dotState = isDisabled
+              ? 'disabled'
+              : isHealthy
+                ? 'healthy'
+                : action === 'starting' || (inStartWindow && !isHealthy) || (isRunning && !isHealthy)
+                  ? 'starting'
+                  : !healthChecked || !procChecked
+                    ? 'checking'
+                    : 'offline';
 
             return (
               <div key={svc.id} className={`${styles.card} ${isDisabled ? styles.cardDisabled : ''}`}>
@@ -323,6 +356,7 @@ function ServiceFormModal({
   onClose: () => void;
 }) {
   const isEdit = !!service;
+  const showToast = useUiStore((s) => s.showToast);
   const [models, setModels] = useState<RegisteredModel[]>([]);
   const [selectedModelId, setSelectedModelId] = useState<number | null>(null);
 
@@ -334,7 +368,10 @@ function ServiceFormModal({
           setTimeout(() => handleModelSelect(preSelectModelId), 0);
         }
       })
-      .catch(() => {});
+      .catch((err) => {
+        const detail = err instanceof ApiError ? err.detail : '模型列表加载失败';
+        showToast({ type: 'error', message: detail });
+      });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [name, setName] = useState(service?.name || '');

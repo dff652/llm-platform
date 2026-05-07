@@ -1,6 +1,6 @@
 # LLM Platform — TODO
 
-> Updated: 2026-04-15
+> Updated: 2026-05-07
 
 ## Completed (25 commits)
 
@@ -28,6 +28,11 @@
 - [x] 清理 ts-platform 残留代码（DataSource/IoTDB/ModelCenter 死代码 -594 行）
 - [x] 修复 httpx 健康检查单例、log_fh 泄漏、流式 JSON 转义
 - [x] 修正 PerfStats 前后端类型不匹配（byAlgorithm → byModel）
+- [x] 工程原则文档化（`docs/engineering-principles.md` 7 条 + CLAUDE.md 顶部精炼版）
+- [x] 前端 silent swallow 普查：6 处 🔴/🟡 改 toast / 内联提示，5 处 🟢 加 `fallback by design:` 注释
+- [x] `requirements.txt` 清 12 项 ts-platform 时序/异常检测死依赖（pandas/numpy/scipy/sklearn/statsmodels/adtk/kneed/pyod/PyWavelets/ruptures/tsdownsample/apache-iotdb），补完 -594 行清理的尾巴
+- [x] 修正 `.env.example` postgres 端口（5432 → 5433），与 `docker-compose.dev.yml` / `alembic.ini` 对齐
+- [x] CLAUDE.md「开发环境」补「最小化 dev 启动」段（无 Docker / 无 Redis 路径，SQLite + DEBUG=true 自建表）
 
 ## Next — 待执行
 
@@ -46,6 +51,8 @@
 | **模型加载进度** | 启动中时卡片显示进度（端口轮询） |
 | **请求队列** | 高并发时排队 + 超时控制 |
 | **Webhook 回调** | 请求完成后通知外部系统 |
+| **修补 alembic initial 迁移** | 当前 `96252e4767af_initial_schema.py` 只有 `create_index`，不含 `create_table`。新部署机器跨版本升级时会因表不存在炸（参见 2026-05-07 普查 SQLite 路径错误）。需补真正的 initial migration 或显式说明"建表靠 `Base.metadata.create_all()`，alembic 仅管 schema 演进"，二者其一明确 |
+| **JWT_SECRET 改 pydantic Field(...)** | 当前 `core/config.py` 仍有默认值，靠 `main.py` lifespan 运行时 raise；改为 `Field(...)` 让 IDE/OpenAPI schema 也能看出必填 |
 
 ### P3 — 远期
 
@@ -71,3 +78,4 @@
 | 2026-04-14 | 设计决策文档（11 项），项目文档全面更新 |
 | 2026-04-14 | Alembic 迁移，Token 配额，请求/响应详情日志，上下文长度显示 |
 | 2026-04-15 | 代码审查：清理 ts-platform 残留，修复 httpx/fd/JSON 三个 bug，PerfStats 类型对齐 |
+| 2026-05-07 | 工程原则文档化（7 条）+ 前端吞错普查（11 处定位、6 修 5 加注释）+ 后端依赖清死项 + dev env 文档化 |

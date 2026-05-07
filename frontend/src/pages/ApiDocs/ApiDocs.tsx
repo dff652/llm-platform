@@ -8,6 +8,7 @@ interface ModelInfo {
 
 export default function ApiDocs() {
   const [models, setModels] = useState<ModelInfo[]>([]);
+  const [modelsError, setModelsError] = useState<string | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
 
   useEffect(() => {
@@ -16,9 +17,12 @@ export default function ApiDocs() {
     const token = localStorage.getItem('token');
     if (token) {
       fetch('/v1/models', { headers: { Authorization: `Bearer ${token}` } })
-        .then((r) => r.json())
+        .then(async (r) => {
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          return r.json();
+        })
         .then((data) => setModels(data.data || []))
-        .catch(() => {});
+        .catch((err) => setModelsError(err instanceof Error ? err.message : '加载失败'));
     }
   }, []);
 
@@ -46,9 +50,12 @@ export default function ApiDocs() {
             <span className={styles.stepNum}>2</span>
             <div>
               <strong>选择模型</strong>
-              <p>可用模型：{models.length > 0
-                ? models.map((m) => <code key={m.id} className={styles.code}>{m.id}</code>)
-                : <span className={styles.muted}>暂未注册模型</span>
+              <p>可用模型：{
+                modelsError
+                  ? <span className={styles.muted}>加载失败：{modelsError}</span>
+                  : models.length > 0
+                    ? models.map((m) => <code key={m.id} className={styles.code}>{m.id}</code>)
+                    : <span className={styles.muted}>暂未注册模型</span>
               }</p>
             </div>
           </div>
