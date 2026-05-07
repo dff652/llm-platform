@@ -16,6 +16,8 @@
 
 完整版判断标准和示例见 `docs/engineering-principles.md`。
 
+**网关层 LLM 输出稳定性策略**（透传完整 vs 网关增强 vs 库层 SDK）见 `docs/gateway-stability-strategy.md` —— 当前定位是 Layer A 透传，**不内嵌响应解析逻辑**，结构化输出由 vLLM 约束解码 + 客户端自行处理。
+
 ## 绝对禁止
 
 - **不使用 D3.js** — 所有可视化基于 ECharts
