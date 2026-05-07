@@ -122,20 +122,35 @@ LLM 调用的下游消费者经常需要稳定的结构化输出（JSON / Functi
 
 ## 分阶段计划
 
-### 阶段 1（**本周可做**）— 验证 Layer A
+### 阶段 1（**进行中**）— 验证 Layer A
 
 **目标**：确认网关默认透传完整。
 
 **任务**：
-- [ ] 写 `backend/tests/test_passthrough.py`
-  - [ ] `extra_body.guided_json` 透传
-  - [ ] `tools` / `tool_choice` 透传
-  - [ ] `response_format` 透传
-  - [ ] `n` / `seed` 透传
+- [x] 写 `backend/tests/test_passthrough.py`（13 个 schema/payload 单元测试，2026-05-07）
+  - [x] `extra_body.guided_json` / `guided_regex` / `guided_choice` 透传 ✓
+  - [x] `extra_body` 多 key 同时展平不丢字段 ✓
+  - [x] `tools` / `tool_choice`（含具体函数 dict 形式）透传 ✓
+  - [x] `response_format` json_schema strict + json_object 两种形式透传 ✓
+  - [x] `n` / `temperature` / `top_p`（声明字段）+ `seed`（extra=allow）透传 ✓
+  - [x] 多模态消息 `content: [{type: "text"}, {type: "image_url"}]` 嵌套结构保留 ✓
+  - [x] ts-lab guided_json technique 完整请求形态综合验证 ✓
+- [ ] 端到端集成测试：起 fake vLLM（httpbin / aiohttp 假服务器）→ 通过真 FastAPI 路由 → 校验 vLLM 收到的 payload。当前是 schema 层验证，没覆盖：
+  - 流式响应 SSE 转发是否完整
+  - DB log 是否记录完整 payload（隐私 / 计费要看）
+  - HTTP 错误透传（vLLM 4xx/5xx 是否原样回客户端）
 - [ ] 在 `frontend/src/pages/ApiDocs/ApiDocs.tsx` 加这三类透传的使用示例（让用户知道网关支持）
-- [ ] 如果发现某字段被 `services/api.ts` 的 snake↔camel 转换破坏，修
+- [ ] **重构债**：`openai_api.py` L138-140 的 payload 构造逻辑应抽出为 `_build_chat_payload()` 函数，端点和测试共享，避免逻辑漂移（test 当前复刻 3 行）
 
-**预期输出**：一份「llm-platform 透传完整性报告」，列出每类字段的实测结果。
+**已确认结论**（2026-05-07 schema 层）：
+
+| 透传路径 | 客户端 → vLLM | 状态 |
+|---|---|---|
+| `extra_body.{guided_*}` 展平到顶层 | OpenAI SDK 约定 | ✅ openai_api.py L138-140 处理正确 |
+| 顶层 `tools` / `tool_choice` | extra=allow 兜底 | ✅ schema 已配置 |
+| 顶层 `response_format` | extra=allow 兜底 | ✅ schema 已配置 |
+| 顶层 `seed` | extra=allow 兜底 | ✅ 复现实验依赖 |
+| 多模态 `content: list[dict]` | ChatMessage.content 类型已声明 | ✅ Qwen-VL / GPT-4V 路径不阻塞 |
 
 ### 阶段 2（**ts-lab benchmark 出结果后**）— 数据驱动决策
 
